@@ -1,0 +1,11 @@
+.portal-login {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+.portal-login-card { background: #fff; border-radius: 16px; padding: 40px; width: 380px; max-width: 90vw; }
+.portal-brand { font-size: 28px; font-weight: 900; color: #e85d04; display: block; margin-bottom: 4px; }
+.portal-subtitle { color: var(--text-muted); margin-bottom: 24px; }
+.portal-root { max-width: 900px; margin: 0 auto; padding: 24px; }
+.portal-header { background: #1e293b; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+.portal-client-name { font-size: 14px; color: rgba(255,255,255,0.7); }
+.portal-main { padding: 24px; }

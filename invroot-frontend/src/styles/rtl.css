@@ -1,0 +1,14 @@
+/* RTL (Arabic) layout overrides */
+[dir="rtl"] {
+  text-align: right;
+}
+[dir="rtl"] .form-row { flex-direction: row-reverse; }
+[dir="rtl"] .td-amount { text-align: start; }
+[dir="rtl"] .modal-footer { flex-direction: row-reverse; }
+[dir="rtl"] .pagination { flex-direction: row-reverse; }
+[dir="rtl"] .card-header { flex-direction: row-reverse; }
+[dir="rtl"] .card-toolbar { flex-direction: row-reverse; }
+[dir="rtl"] .page-header { flex-direction: row-reverse; }
+[dir="rtl"] .search-icon { inset-inline-start: 10px; }
+[dir="rtl"] .data-table th { text-align: right; }
+[dir="rtl"] .data-table td { text-align: right; }

@@ -1,0 +1,384 @@
+/* ── Signup root ─────────────────────────────────────────── */
+.su-root {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font);
+  background: var(--bg-main);
+}
+
+/* ── Left decorative column ──────────────────────────────── */
+.su-left {
+  width: 420px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #1a2e4a 0%, #244066 50%, #2d5490 100%);
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+/* subtle background decoration */
+.su-left::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(242,66,27,0.18) 0%, transparent 50%),
+    radial-gradient(circle at 10% 90%, rgba(58,90,138,0.5) 0%, transparent 55%);
+  pointer-events: none;
+}
+.su-left::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; right: -80px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+}
+
+.su-left-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 44px;
+  width: 100%;
+}
+
+.su-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  margin-bottom: 56px;
+}
+.su-brand span { font-size: 22px; font-weight: 900; letter-spacing: 0.5px; }
+.su-brand-icon { width: 28px; height: 28px; color: #ff6b4a; }
+
+.su-panel-text { flex: 1; }
+.su-panel-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 16px;
+}
+.su-panel-heading {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  white-space: pre-line;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+.su-panel-body {
+  font-size: 14.5px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+.su-panel-bullets {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.su-panel-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.85);
+}
+.su-bullet-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(242,66,27,0.25);
+  color: #ff6b4a;
+  flex-shrink: 0;
+}
+.su-bullet-dot svg { width: 12px; height: 12px; }
+
+/* step dots */
+.su-step-dots {
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 28px;
+}
+.su-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transition: all 0.25s;
+}
+.su-dot.active { background: #ff6b4a; width: 24px; border-radius: 4px; }
+.su-dot.done { background: rgba(255,255,255,0.55); }
+
+/* stat row */
+.su-left-stats {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+}
+.su-stat { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.su-stat strong { font-size: 18px; font-weight: 800; color: #fff; }
+.su-stat span { font-size: 11px; color: rgba(255,255,255,0.55); }
+
+/* ── Right form panel ────────────────────────────────────── */
+.su-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow-y: auto;
+}
+
+.su-form-wrap {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+.su-progress {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+.su-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #244066, #f2421b);
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Step pane ───────────────────────────────────────────── */
+.su-step-pane { display: flex; flex-direction: column; gap: 18px; }
+
+.su-step-header { margin-bottom: 4px; }
+.su-step-header h1 { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+.su-step-header p { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Fields ──────────────────────────────────────────────── */
+.su-field { display: flex; flex-direction: column; gap: 6px; }
+.su-field label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.su-optional { font-weight: 400; color: var(--text-muted); }
+
+.su-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.su-input-icon {
+  position: absolute;
+  inset-inline-start: 13px;
+  width: 18px; height: 18px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.su-input-wrap input {
+  width: 100%;
+  padding: 11px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.su-input-wrap input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(36, 64, 102, 0.1);
+}
+.su-eye-btn {
+  position: absolute;
+  inset-inline-end: 12px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted);
+  display: flex; align-items: center;
+  padding: 4px;
+}
+.su-eye-btn:hover { color: var(--primary); }
+.su-eye-btn svg { width: 18px; height: 18px; }
+
+.su-match-dot {
+  position: absolute;
+  inset-inline-end: 38px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.su-match-dot.ok { color: var(--success); }
+.su-match-dot.no { color: var(--danger); }
+
+/* ── Password strength ───────────────────────────────────── */
+.su-strength { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.su-strength-bar { display: flex; gap: 4px; flex: 1; }
+.su-strength-seg { flex: 1; height: 4px; border-radius: 2px; transition: background 0.2s; }
+.su-strength-label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+
+/* ── Plan mini teaser (step 0) ───────────────────────────── */
+.su-plan-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #15803d;
+}
+.su-badge {
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Plans grid ──────────────────────────────────────────── */
+.su-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.su-plan-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: start;
+  transition: all 0.18s;
+  width: 100%;
+  overflow: hidden;
+}
+.su-plan-card:hover { border-color: var(--primary-light-blue); box-shadow: var(--shadow-sm); }
+.su-plan-card.selected {
+  border-color: var(--primary);
+  background: rgba(36, 64, 102, 0.03);
+  box-shadow: 0 0 0 3px rgba(36, 64, 102, 0.1);
+}
+.su-plan-card.popular { border-color: var(--secondary); }
+.su-plan-card.popular.selected { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(242,66,27,0.12); }
+
+.su-popular-tag {
+  position: absolute;
+  top: 0; inset-inline-end: 0;
+  background: var(--secondary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-end-start-radius: 10px;
+  letter-spacing: 0.3px;
+}
+.su-plan-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.su-plan-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.su-plan-sub { font-size: 11px; color: var(--text-muted); }
+.su-plan-price { font-size: 22px; font-weight: 800; color: var(--primary); }
+.su-plan-card.popular .su-plan-price { color: var(--secondary); }
+
+.su-plan-features {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.su-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.su-feat-check { width: 13px; height: 13px; color: var(--success); flex-shrink: 0; }
+
+.su-plan-selected-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 2px solid var(--primary);
+  pointer-events: none;
+}
+.su-plan-card.popular .su-plan-selected-ring { border-color: var(--secondary); }
+
+/* ── Terms ───────────────────────────────────────────────── */
+.su-terms { font-size: 12px; color: var(--text-muted); text-align: center; }
+.su-terms a { color: var(--primary); font-weight: 600; }
+
+/* ── Buttons row ─────────────────────────────────────────── */
+.su-row-btns { display: flex; gap: 10px; }
+.su-back-btn { flex-shrink: 0; }
+.su-next-btn { flex: 1; justify-content: center; }
+.su-btn-icon { width: 16px; height: 16px; }
+
+/* ── Success screen ──────────────────────────────────────── */
+.su-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px;
+  gap: 16px;
+  text-align: center;
+}
+.su-success-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-bottom: 8px;
+  box-shadow: 0 8px 32px rgba(22,163,74,0.3);
+}
+.su-success-icon svg { width: 36px; height: 36px; }
+.su-success h2 { font-size: 26px; font-weight: 800; color: var(--text-primary); }
+.su-success p { font-size: 14px; color: var(--text-muted); max-width: 360px; }
+.su-success .btn { margin-top: 8px; min-width: 200px; justify-content: center; }
+
+/* ── RTL tweaks ──────────────────────────────────────────── */
+.su-root.rtl .su-input-icon { inset-inline-start: 13px; }
+.su-root.rtl .su-eye-btn { inset-inline-end: 12px; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .su-left { display: none; }
+  .su-right { padding: 32px 20px; }
+}
+@media (max-width: 480px) {
+  .su-plans { gap: 8px; }
+  .su-plan-card { padding: 12px 14px; }
+  .su-panel-heading { font-size: 26px; }
+}
