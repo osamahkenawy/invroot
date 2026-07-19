@@ -43,7 +43,12 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       if (res.success) {
-        navigate('/dashboard');
+        if (res.user?.is_super_admin) {
+          localStorage.setItem('sa_token', res.token);
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(res.message || 'Login failed');
       }

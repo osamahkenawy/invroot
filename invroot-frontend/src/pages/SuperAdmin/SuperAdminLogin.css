@@ -1,0 +1,66 @@
+.sa-login-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #060e15 0%, #0D1B2A 60%, #1e3448 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.sa-login-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 25px 80px rgba(0,0,0,.45);
+}
+.sa-login-brand { text-align: center; margin-bottom: 36px; }
+.sa-login-logo {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0D1B2A, #d63a17);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.sa-login-logo-icon { font-size: 28px; }
+.sa-login-title { font-size: 26px; font-weight: 800; color: #0D1B2A; margin: 0 0 6px; }
+.sa-login-sub { font-size: 13px; color: #6b7280; margin: 0; }
+.sa-login-form { display: flex; flex-direction: column; gap: 18px; }
+.sa-login-error {
+  padding: 12px 16px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #fca5a5;
+}
+.sa-field { display: flex; flex-direction: column; gap: 6px; }
+.sa-label { font-size: 13px; font-weight: 600; color: #374151; }
+.sa-input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s;
+  background: #fafafa;
+}
+.sa-input:focus { border-color: #0D1B2A; background: #fff; }
+.sa-login-btn {
+  height: 48px;
+  background: linear-gradient(135deg, #0D1B2A, #1e3448);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity .15s;
+}
+.sa-login-btn:hover:not(:disabled) { opacity: .9; }
+.sa-login-btn:disabled { opacity: .6; cursor: default; }
+.sa-login-back { text-align: center; margin-top: 20px; font-size: 13px; }
+.sa-login-back a { color: #6b7280; text-decoration: none; }
+.sa-login-back a:hover { color: #0D1B2A; }

@@ -28,6 +28,23 @@ import Banking      from './pages/Banking.jsx';
 import TimeTracking from './pages/TimeTracking.jsx';
 import Reminders    from './pages/Reminders.jsx';
 
+// Super Admin
+import SuperAdminLogin  from './pages/SuperAdmin/SuperAdminLogin.jsx';
+import SuperAdminLayout from './pages/SuperAdmin/SuperAdminLayout.jsx';
+import SADashboard      from './pages/SuperAdmin/SADashboard.jsx';
+import SATenants        from './pages/SuperAdmin/SATenants.jsx';
+import SATenantDetail   from './pages/SuperAdmin/SATenantDetail.jsx';
+import SAInvoices       from './pages/SuperAdmin/SAInvoices.jsx';
+import SAPayments       from './pages/SuperAdmin/SAPayments.jsx';
+import SAUsers          from './pages/SuperAdmin/SAUsers.jsx';
+import SAAnalytics      from './pages/SuperAdmin/SAAnalytics.jsx';
+
+function SuperAdminRoute({ children }) {
+  const token = localStorage.getItem('sa_token');
+  if (!token) return <Navigate to="/admin/login" replace />;
+  return children;
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
   if (loading) return <div className="full-page-loader"><span className="spinner" /></div>;
@@ -73,6 +90,18 @@ export default function App() {
             <Route path="/banking"       element={<Banking />} />
             <Route path="/time-tracking" element={<TimeTracking />} />
             <Route path="/reminders"     element={<Reminders />} />
+          </Route>
+
+          {/* Super Admin */}
+          <Route path="/admin/login" element={<SuperAdminLogin />} />
+          <Route path="/admin" element={<SuperAdminRoute><SuperAdminLayout /></SuperAdminRoute>}>
+            <Route index element={<SADashboard />} />
+            <Route path="tenants"         element={<SATenants />} />
+            <Route path="tenants/:id"     element={<SATenantDetail />} />
+            <Route path="invoices"        element={<SAInvoices />} />
+            <Route path="payments"        element={<SAPayments />} />
+            <Route path="users"           element={<SAUsers />} />
+            <Route path="analytics"       element={<SAAnalytics />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

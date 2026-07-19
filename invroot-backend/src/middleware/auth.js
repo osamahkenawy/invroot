@@ -4,7 +4,7 @@ import { query } from '../lib/database.js';
 
 export function generateToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, tenant_id: user.tenant_id },
+    { id: user.id, username: user.username, role: user.role, tenant_id: user.tenant_id, is_super_admin: !!user.is_super_admin },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
@@ -25,7 +25,7 @@ export async function authMiddleware(req, res, next) {
 
     const [user] = await query(
       `SELECT u.id, u.tenant_id, u.username, u.email, u.full_name, u.role, u.is_active,
-              u.is_owner, u.avatar_url, u.lang_preference,
+              u.is_owner, u.is_super_admin, u.avatar_url, u.lang_preference,
               t.status as tenant_status, t.slug as tenant_slug
        FROM users u
        LEFT JOIN tenants t ON u.tenant_id = t.id
