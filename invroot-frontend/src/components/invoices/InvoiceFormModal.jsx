@@ -525,7 +525,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
       }}>
         {/* Header */}
         <div style={{
-          background:'linear-gradient(135deg,#244066,#3a5a8a)',
+          background:'linear-gradient(135deg,#0D1B2A,#1e3448)',
           padding:'20px 24px', display:'flex', alignItems:'center', justifyContent:'space-between',
         }}>
           <div>
@@ -550,7 +550,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
           {/* Avatar preview */}
           <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
             <div style={{
-              width:52, height:52, borderRadius:14, background:'#244066', color:'#fff',
+              width:52, height:52, borderRadius:14, background:'#0D1B2A', color:'#fff',
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:20, fontWeight:700, flexShrink:0,
             }}>
@@ -569,7 +569,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 value={form.name} onChange={set('name')} required
                 placeholder="e.g. John Smith"
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#244066'}
+                onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
@@ -579,7 +579,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 value={form.company_name} onChange={set('company_name')}
                 placeholder="Acme Corp"
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#244066'}
+                onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
@@ -589,7 +589,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 type="email" value={form.email} onChange={set('email')}
                 placeholder="client@example.com"
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#244066'}
+                onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
@@ -599,7 +599,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 value={form.phone} onChange={set('phone')}
                 placeholder="+966 5X XXX XXXX"
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#244066'}
+                onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
@@ -609,7 +609,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 value={form.billing_address} onChange={set('billing_address')} rows={2}
                 placeholder="Street, City, Country"
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none', resize:'vertical' }}
-                onFocus={e => e.target.style.borderColor='#244066'}
+                onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
@@ -623,7 +623,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
             }}>Cancel</button>
             <button type="submit" disabled={saving} style={{
               flex:2, padding:'10px', borderRadius:10, border:'none',
-              background:'linear-gradient(135deg,#244066,#3a5a8a)', color:'#fff',
+              background:'linear-gradient(135deg,#0D1B2A,#1e3448)', color:'#fff',
               cursor:saving?'not-allowed':'pointer', fontWeight:700, fontSize:14,
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
               opacity:saving?0.7:1,

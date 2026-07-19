@@ -12,23 +12,32 @@ router.use(authMiddleware, tenantMiddleware);
 /* ── GET /api/payments ──────────────────────────────── */
 router.get('/', async (req, res) => {
   try {
-    const { invoice_id, client_id, method, page = 1, limit = 20 } = req.query;
+    const { invoice_id, client_id, method, search, date_from, date_to, page = 1, limit = 20 } = req.query;
     const conditions = ['p.tenant_id = ?'];
     const params = [req.tenantId];
     if (invoice_id) { conditions.push('p.invoice_id = ?'); params.push(invoice_id); }
-    if (client_id) { conditions.push('p.client_id = ?'); params.push(client_id); }
-    if (method) { conditions.push('p.method = ?'); params.push(method); }
+    if (client_id)  { conditions.push('p.client_id = ?');  params.push(client_id); }
+    if (method)     { conditions.push('p.method = ?');     params.push(method); }
+    if (date_from)  { conditions.push('DATE(p.payment_date) >= ?'); params.push(date_from); }
+    if (date_to)    { conditions.push('DATE(p.payment_date) <= ?'); params.push(date_to); }
+    if (search)     { conditions.push('(i.invoice_number LIKE ? OR c.name LIKE ? OR p.reference LIKE ?)'); const s = `%${search}%`; params.push(s, s, s); }
+
     const offset = (parseInt(page) - 1) * parseInt(limit);
+    const where = conditions.join(' AND ');
     const rows = await query(
-      `SELECT p.*, i.invoice_number, c.name as client_name
+      `SELECT p.*, i.invoice_number, i.currency, c.name as client_name,
+              r.id as receipt_id, r.receipt_number
        FROM payments p
        LEFT JOIN invoices i ON p.invoice_id = i.id
        LEFT JOIN clients c ON p.client_id = c.id
-       WHERE ${conditions.join(' AND ')} ORDER BY p.payment_date DESC LIMIT ? OFFSET ?`,
+       LEFT JOIN receipts r ON r.payment_id = p.id
+       WHERE ${where} ORDER BY p.payment_date DESC LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), parseInt(offset)]
     );
-    const [{ total }] = await query(`SELECT COUNT(*) as total FROM payments p WHERE ${conditions.join(' AND ')}`, params);
-    res.json({ success: true, data: rows, total });
+    const [{ total }] = await query(`SELECT COUNT(*) as total FROM payments p LEFT JOIN invoices i ON p.invoice_id = i.id LEFT JOIN clients c ON p.client_id = c.id WHERE ${where}`, params);
+    const [{ total_amount }] = await query(`SELECT COALESCE(SUM(p.amount),0) as total_amount FROM payments p LEFT JOIN invoices i ON p.invoice_id = i.id LEFT JOIN clients c ON p.client_id = c.id WHERE ${where}`, params);
+    const [{ currency }] = await query("SELECT COALESCE(currency,'SAR') AS currency FROM tenants WHERE id = ?", [req.tenantId]).catch(() => [{ currency: 'SAR' }]);
+    res.json({ success: true, data: rows, total, total_amount, currency });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

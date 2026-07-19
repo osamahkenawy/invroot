@@ -5,7 +5,7 @@ import { fmtCurrency } from '../../utils/currency.js';
 import { fmtDate } from '../../utils/date.js';
 import Loader from '../Loader.jsx';
 import RecordPaymentModal from './RecordPaymentModal.jsx';
-import { Xmark, Download, Send, DollarCircle, Copy, Trash, PrintingPage } from 'iconoir-react';
+import { Xmark, Download, Send, DollarCircle, Copy, Trash, PrintingPage, Link, RefreshDouble, Page, CheckCircle } from 'iconoir-react';
 
 const STATUS_COLORS = {
   draft: '#9ca3af', sent: '#2563eb', viewed: '#7c3aed',
@@ -19,6 +19,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [busy, setBusy] = useState('');
   const [showPay, setShowPay] = useState(false);
   const [receipts, setReceipts] = useState([]);
+  const [relations, setRelations] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -27,6 +28,8 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     setLoading(false);
     const rc = await api.get(`/receipts?invoice_id=${invoiceId}&limit=100`);
     if (rc.success) setReceipts(rc.data);
+    const rl = await api.get(`/invoices/${invoiceId}/relations`);
+    if (rl.success) setRelations(rl.data);
   };
 
   useEffect(() => { load(); }, [invoiceId]);
@@ -181,6 +184,90 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                 <div className="detail-section">
                   <h4 className="detail-section-title">{t('common.notes')}</h4>
                   <div className="detail-muted">{inv.notes}</div>
+                </div>
+              )}
+
+              {/* ── Related Documents ────────────────── */}
+              {relations && (
+                <div className="detail-section">
+                  <h4 className="detail-section-title" style={{display:'flex',alignItems:'center',gap:6}}>
+                    <Link width={14} height={14} /> Related Documents
+                  </h4>
+                  <div className="inv-relations-panel">
+
+                    {relations.quote && (
+                      <div className="inv-rel-group">
+                        <div className="inv-rel-group-label">Converted from Quote</div>
+                        <div className="inv-rel-item">
+                          <Page width={14} height={14} style={{color:'#2563eb'}} />
+                          <span className="inv-rel-num">{relations.quote.quote_number}</span>
+                          <span className="inv-rel-meta">{relations.quote.status}</span>
+                          <span className="inv-rel-amt">{fmtCurrency(relations.quote.total_amount, relations.quote.currency)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {relations.recurring_schedule && (
+                      <div className="inv-rel-group">
+                        <div className="inv-rel-group-label">
+                          Recurring Schedule — {relations.recurring_schedule.name}
+                          {relations.recurring_siblings?.length > 0 && ` (${relations.recurring_siblings.length} siblings)`}
+                        </div>
+                        {relations.recurring_siblings?.slice(0, 5).map(s => (
+                          <div key={s.id} className="inv-rel-item">
+                            <RefreshDouble width={13} height={13} style={{color:'#7c3aed'}} />
+                            <span className="inv-rel-num">{s.invoice_number}</span>
+                            <span className="inv-rel-meta">{s.status} · {fmtDate(s.issue_date)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {relations.parent_invoice && (
+                      <div className="inv-rel-group">
+                        <div className="inv-rel-group-label">Parent Invoice ({relations.parent_invoice.relation_type})</div>
+                        <div className="inv-rel-item">
+                          <Page width={14} height={14} style={{color:'#d97706'}} />
+                          <span className="inv-rel-num">{relations.parent_invoice.invoice_number}</span>
+                          <span className="inv-rel-meta">{relations.parent_invoice.status}</span>
+                          <span className="inv-rel-amt">{fmtCurrency(relations.parent_invoice.total_amount, relations.parent_invoice.currency)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {relations.child_revisions?.length > 0 && (
+                      <div className="inv-rel-group">
+                        <div className="inv-rel-group-label">Revisions / Replacements</div>
+                        {relations.child_revisions.map(c => (
+                          <div key={c.id} className="inv-rel-item">
+                            <Page width={14} height={14} style={{color:'#f97316'}} />
+                            <span className="inv-rel-num">{c.invoice_number}</span>
+                            <span className="inv-rel-meta">{c.relation_type} · {c.status}</span>
+                            <span className="inv-rel-amt">{fmtCurrency(c.total_amount, c.currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {relations.credit_notes?.length > 0 && (
+                      <div className="inv-rel-group">
+                        <div className="inv-rel-group-label">Credit Notes Applied</div>
+                        {relations.credit_notes.map(cn => (
+                          <div key={cn.id} className="inv-rel-item">
+                            <CheckCircle width={13} height={13} style={{color:'#dc2626'}} />
+                            <span className="inv-rel-num">{cn.cn_number}</span>
+                            <span className="inv-rel-meta">{cn.status}{cn.reason ? ` · ${cn.reason}` : ''}</span>
+                            <span className="inv-rel-amt" style={{color:'#dc2626'}}>−{fmtCurrency(cn.amount, inv.currency)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {!relations.quote && !relations.recurring_schedule && !relations.parent_invoice &&
+                     !relations.child_revisions?.length && !relations.credit_notes?.length && (
+                      <div style={{color:'var(--text-muted)',fontSize:13}}>No related documents</div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

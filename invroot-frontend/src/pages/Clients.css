@@ -89,7 +89,7 @@
 
 .cc-balance-row {
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--bg-soft, #f8f9fc); border-radius: 10px; padding: 10px 12px;
+  background: var(--bg-soft, #F2F4F7); border-radius: 10px; padding: 10px 12px;
 }
 .cc-bal-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
 .cc-bal-val { font-size: 16px; font-weight: 700; }
@@ -105,7 +105,7 @@
   display: flex; align-items: center; justify-content: center; gap: 5px;
   transition: all .15s;
 }
-.cc-actions .cc-btn:hover { background: var(--bg-soft, #f8f9fc); }
+.cc-actions .cc-btn:hover { background: var(--bg-soft, #F2F4F7); }
 .cc-actions .cc-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .cc-actions .cc-btn.primary:hover { opacity: .9; }
 .cc-actions .cc-btn.danger:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
@@ -186,11 +186,11 @@
 .clients-table th {
   text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted);
-  border-bottom: 1px solid var(--border); background: var(--bg-soft, #f8f9fc);
+  border-bottom: 1px solid var(--border); background: var(--bg-soft, #F2F4F7);
   white-space: nowrap;
 }
 .clients-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
-.clients-table tbody tr:hover { background: var(--bg-soft, #f8f9fc); }
+.clients-table tbody tr:hover { background: var(--bg-soft, #F2F4F7); }
 .clients-table tbody tr:last-child td { border-bottom: none; }
 
 /* ── pagination ─── */

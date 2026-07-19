@@ -2,21 +2,34 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
 import Loader from '../components/Loader.jsx';
-import { Plus, Xmark, RefreshDouble } from 'iconoir-react';
+import { Plus, Xmark, RefreshDouble, DollarCircle, Check, Slash } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
 
 export default function CreditNotes() {
   const { t } = useTranslation();
   const [notes,    setNotes]    = useState([]);
+  const [summary,  setSummary]  = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
 
   const fetch = () => {
     setLoading(true);
-    api.get('/credit-notes').then(res => { if (res.success) setNotes(res.data); setLoading(false); });
+    Promise.all([
+      api.get('/credit-notes'),
+      api.get('/credit-notes/summary'),
+    ]).then(([nRes, sRes]) => {
+      if (nRes.success) setNotes(nRes.data);
+      if (sRes.success) setSummary(sRes.data);
+      setLoading(false);
+    });
   };
   useEffect(() => { fetch(); }, []);
+
+  const voidCN  = async (id) => { if (!confirm(t('credit_notes.confirm_void')))  return; await api.put('/credit-notes/' + id + '/void',  {}); fetch(); };
+  const applyCN = async (id) => { if (!confirm(t('credit_notes.confirm_apply'))) return; await api.put('/credit-notes/' + id + '/apply', {}); fetch(); };
+
+  const cur = summary?.currency || 'SAR';
 
   return (
     <div>
@@ -26,6 +39,24 @@ export default function CreditNotes() {
           <Plus /> {t('credit_notes.new')}
         </button>
       </div>
+
+      {/* Stats */}
+      {summary && (
+        <div className="pay-stats-row" style={{ marginBottom:16 }}>
+          <div className="pay-stat-card">
+            <div className="pay-stat-icon" style={{ background:'#dbeafe' }}><DollarCircle style={{ color:'#2563eb' }} /></div>
+            <div><div className="pay-stat-label">{t('credit_notes.total_issued')}</div><div className="pay-stat-value">{fmtCurrency(summary.total_issued, cur)}</div></div>
+          </div>
+          <div className="pay-stat-card">
+            <div className="pay-stat-icon" style={{ background:'#dcfce7' }}><Check style={{ color:'#16a34a' }} /></div>
+            <div><div className="pay-stat-label">{t('credit_notes.total_applied')}</div><div className="pay-stat-value">{fmtCurrency(summary.total_applied, cur)}</div></div>
+          </div>
+          <div className="pay-stat-card">
+            <div className="pay-stat-icon" style={{ background:'#fef3c7' }}><RefreshDouble style={{ color:'#d97706' }} /></div>
+            <div><div className="pay-stat-label">{t('credit_notes.pending')}</div><div className="pay-stat-value">{fmtCurrency(summary.total_pending, cur)}</div></div>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         {loading ? <Loader fullPage /> : notes.length === 0 ? (
@@ -50,6 +81,7 @@ export default function CreditNotes() {
                     <th className="hide-mobile">{t('credit_notes.reason')}</th>
                     <th>{t('common.status')}</th>
                     <th className="hide-mobile">{t('common.date')}</th>
+                    <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -58,10 +90,14 @@ export default function CreditNotes() {
                       <td className="td-mono">{n.cn_number}</td>
                       <td>{n.client_name}</td>
                       <td className="td-mono hide-mobile">{n.invoice_number || '—'}</td>
-                      <td className="td-amount">{fmtCurrency(n.amount)}</td>
+                      <td className="td-amount">{fmtCurrency(n.amount, n.currency || cur)}</td>
                       <td className="hide-mobile">{n.reason_code || n.reason || '—'}</td>
                       <td><span className={`status-badge status-${n.status}`}>{n.status}</span></td>
                       <td className="hide-mobile">{fmtDate(n.created_at)}</td>
+                      <td className="td-actions">
+                        {n.status === 'issued' && <button className="btn btn-sm btn-success" title={t('credit_notes.apply')} onClick={() => applyCN(n.id)}><Check /></button>}
+                        {n.status !== 'voided' && <button className="btn btn-sm btn-danger" title={t('credit_notes.void')} onClick={() => voidCN(n.id)}><Slash /></button>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

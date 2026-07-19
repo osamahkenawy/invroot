@@ -6,9 +6,185 @@ import Loader from '../components/Loader.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
 import {
   Building, Group, NumberedListLeft, User,
-  Palette, PenTablet, Upload, Check, Xmark
+  Palette, PenTablet, Upload, Check, Xmark, NavArrowDown, Search
 } from 'iconoir-react';
 import './Settings.css';
+
+/* ── Country data ────────────────────────────────────── */
+const flag = (code) =>
+  [...(code || '').toUpperCase()].map(c =>
+    String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+
+const COUNTRIES = [
+  {code:'AF',name:'Afghanistan'},{code:'AL',name:'Albania'},{code:'DZ',name:'Algeria'},
+  {code:'AD',name:'Andorra'},{code:'AO',name:'Angola'},{code:'AG',name:'Antigua & Barbuda'},
+  {code:'AR',name:'Argentina'},{code:'AM',name:'Armenia'},{code:'AU',name:'Australia'},
+  {code:'AT',name:'Austria'},{code:'AZ',name:'Azerbaijan'},{code:'BS',name:'Bahamas'},
+  {code:'BH',name:'Bahrain'},{code:'BD',name:'Bangladesh'},{code:'BB',name:'Barbados'},
+  {code:'BY',name:'Belarus'},{code:'BE',name:'Belgium'},{code:'BZ',name:'Belize'},
+  {code:'BJ',name:'Benin'},{code:'BT',name:'Bhutan'},{code:'BO',name:'Bolivia'},
+  {code:'BA',name:'Bosnia & Herzegovina'},{code:'BW',name:'Botswana'},{code:'BR',name:'Brazil'},
+  {code:'BN',name:'Brunei'},{code:'BG',name:'Bulgaria'},{code:'BF',name:'Burkina Faso'},
+  {code:'BI',name:'Burundi'},{code:'KH',name:'Cambodia'},{code:'CM',name:'Cameroon'},
+  {code:'CA',name:'Canada'},{code:'CV',name:'Cape Verde'},{code:'CF',name:'Central African Rep.'},
+  {code:'TD',name:'Chad'},{code:'CL',name:'Chile'},{code:'CN',name:'China'},
+  {code:'CO',name:'Colombia'},{code:'KM',name:'Comoros'},{code:'CG',name:'Congo'},
+  {code:'CR',name:'Costa Rica'},{code:'HR',name:'Croatia'},{code:'CU',name:'Cuba'},
+  {code:'CY',name:'Cyprus'},{code:'CZ',name:'Czech Republic'},{code:'DK',name:'Denmark'},
+  {code:'DJ',name:'Djibouti'},{code:'DM',name:'Dominica'},{code:'DO',name:'Dominican Rep.'},
+  {code:'EC',name:'Ecuador'},{code:'EG',name:'Egypt'},{code:'SV',name:'El Salvador'},
+  {code:'GQ',name:'Equatorial Guinea'},{code:'ER',name:'Eritrea'},{code:'EE',name:'Estonia'},
+  {code:'ET',name:'Ethiopia'},{code:'FJ',name:'Fiji'},{code:'FI',name:'Finland'},
+  {code:'FR',name:'France'},{code:'GA',name:'Gabon'},{code:'GM',name:'Gambia'},
+  {code:'GE',name:'Georgia'},{code:'DE',name:'Germany'},{code:'GH',name:'Ghana'},
+  {code:'GR',name:'Greece'},{code:'GD',name:'Grenada'},{code:'GT',name:'Guatemala'},
+  {code:'GN',name:'Guinea'},{code:'GW',name:'Guinea-Bissau'},{code:'GY',name:'Guyana'},
+  {code:'HT',name:'Haiti'},{code:'HN',name:'Honduras'},{code:'HU',name:'Hungary'},
+  {code:'IS',name:'Iceland'},{code:'IN',name:'India'},{code:'ID',name:'Indonesia'},
+  {code:'IR',name:'Iran'},{code:'IQ',name:'Iraq'},{code:'IE',name:'Ireland'},
+  {code:'IL',name:'Israel'},{code:'IT',name:'Italy'},{code:'JM',name:'Jamaica'},
+  {code:'JP',name:'Japan'},{code:'JO',name:'Jordan'},{code:'KZ',name:'Kazakhstan'},
+  {code:'KE',name:'Kenya'},{code:'KI',name:'Kiribati'},{code:'KW',name:'Kuwait'},
+  {code:'KG',name:'Kyrgyzstan'},{code:'LA',name:'Laos'},{code:'LV',name:'Latvia'},
+  {code:'LB',name:'Lebanon'},{code:'LS',name:'Lesotho'},{code:'LR',name:'Liberia'},
+  {code:'LY',name:'Libya'},{code:'LI',name:'Liechtenstein'},{code:'LT',name:'Lithuania'},
+  {code:'LU',name:'Luxembourg'},{code:'MG',name:'Madagascar'},{code:'MW',name:'Malawi'},
+  {code:'MY',name:'Malaysia'},{code:'MV',name:'Maldives'},{code:'ML',name:'Mali'},
+  {code:'MT',name:'Malta'},{code:'MH',name:'Marshall Islands'},{code:'MR',name:'Mauritania'},
+  {code:'MU',name:'Mauritius'},{code:'MX',name:'Mexico'},{code:'FM',name:'Micronesia'},
+  {code:'MD',name:'Moldova'},{code:'MC',name:'Monaco'},{code:'MN',name:'Mongolia'},
+  {code:'ME',name:'Montenegro'},{code:'MA',name:'Morocco'},{code:'MZ',name:'Mozambique'},
+  {code:'MM',name:'Myanmar'},{code:'NA',name:'Namibia'},{code:'NR',name:'Nauru'},
+  {code:'NP',name:'Nepal'},{code:'NL',name:'Netherlands'},{code:'NZ',name:'New Zealand'},
+  {code:'NI',name:'Nicaragua'},{code:'NE',name:'Niger'},{code:'NG',name:'Nigeria'},
+  {code:'NO',name:'Norway'},{code:'OM',name:'Oman'},{code:'PK',name:'Pakistan'},
+  {code:'PW',name:'Palau'},{code:'PA',name:'Panama'},{code:'PG',name:'Papua New Guinea'},
+  {code:'PY',name:'Paraguay'},{code:'PE',name:'Peru'},{code:'PH',name:'Philippines'},
+  {code:'PL',name:'Poland'},{code:'PT',name:'Portugal'},{code:'QA',name:'Qatar'},
+  {code:'RO',name:'Romania'},{code:'RU',name:'Russia'},{code:'RW',name:'Rwanda'},
+  {code:'KN',name:'Saint Kitts & Nevis'},{code:'LC',name:'Saint Lucia'},
+  {code:'VC',name:'Saint Vincent'},{code:'WS',name:'Samoa'},{code:'SM',name:'San Marino'},
+  {code:'ST',name:'São Tomé & Príncipe'},{code:'SA',name:'Saudi Arabia'},
+  {code:'SN',name:'Senegal'},{code:'RS',name:'Serbia'},{code:'SC',name:'Seychelles'},
+  {code:'SL',name:'Sierra Leone'},{code:'SG',name:'Singapore'},{code:'SK',name:'Slovakia'},
+  {code:'SI',name:'Slovenia'},{code:'SB',name:'Solomon Islands'},{code:'SO',name:'Somalia'},
+  {code:'ZA',name:'South Africa'},{code:'SS',name:'South Sudan'},{code:'ES',name:'Spain'},
+  {code:'LK',name:'Sri Lanka'},{code:'SD',name:'Sudan'},{code:'SR',name:'Suriname'},
+  {code:'SZ',name:'Eswatini'},{code:'SE',name:'Sweden'},{code:'CH',name:'Switzerland'},
+  {code:'SY',name:'Syria'},{code:'TW',name:'Taiwan'},{code:'TJ',name:'Tajikistan'},
+  {code:'TZ',name:'Tanzania'},{code:'TH',name:'Thailand'},{code:'TL',name:'Timor-Leste'},
+  {code:'TG',name:'Togo'},{code:'TO',name:'Tonga'},{code:'TT',name:'Trinidad & Tobago'},
+  {code:'TN',name:'Tunisia'},{code:'TR',name:'Turkey'},{code:'TM',name:'Turkmenistan'},
+  {code:'TV',name:'Tuvalu'},{code:'UG',name:'Uganda'},{code:'UA',name:'Ukraine'},
+  {code:'AE',name:'United Arab Emirates'},{code:'GB',name:'United Kingdom'},
+  {code:'US',name:'United States'},{code:'UY',name:'Uruguay'},{code:'UZ',name:'Uzbekistan'},
+  {code:'VU',name:'Vanuatu'},{code:'VE',name:'Venezuela'},{code:'VN',name:'Vietnam'},
+  {code:'YE',name:'Yemen'},{code:'ZM',name:'Zambia'},{code:'ZW',name:'Zimbabwe'},
+];
+
+/* ── Country → Currency mapping ────────────────────── */
+const COUNTRY_CURRENCY = {
+  AE:'AED',AF:'AFN',AL:'ALL',AM:'AMD',AO:'AOA',AR:'ARS',AT:'EUR',AU:'AUD',
+  AZ:'AZN',BA:'BAM',BB:'BBD',BD:'BDT',BE:'EUR',BF:'XOF',BG:'BGN',BH:'BHD',
+  BI:'BIF',BJ:'XOF',BN:'BND',BO:'BOB',BR:'BRL',BS:'BSD',BT:'BTN',BW:'BWP',
+  BY:'BYN',BZ:'BZD',CA:'CAD',CF:'XAF',CG:'XAF',CH:'CHF',CL:'CLP',CM:'XAF',
+  CN:'CNY',CO:'COP',CR:'CRC',CU:'CUP',CV:'CVE',CY:'EUR',CZ:'CZK',DE:'EUR',
+  DJ:'DJF',DK:'DKK',DM:'XCD',DO:'DOP',DZ:'DZD',EC:'USD',EE:'EUR',EG:'EGP',
+  ER:'ERN',ES:'EUR',ET:'ETB',FI:'EUR',FJ:'FJD',FR:'EUR',GA:'XAF',GB:'GBP',
+  GD:'XCD',GE:'GEL',GH:'GHS',GM:'GMD',GN:'GNF',GQ:'XAF',GR:'EUR',GT:'GTQ',
+  GW:'XOF',GY:'GYD',HN:'HNL',HR:'EUR',HT:'HTG',HU:'HUF',ID:'IDR',IE:'EUR',
+  IL:'ILS',IN:'INR',IQ:'IQD',IR:'IRR',IS:'ISK',IT:'EUR',JM:'JMD',JO:'JOD',
+  JP:'JPY',KE:'KES',KG:'KGS',KH:'KHR',KI:'AUD',KM:'KMF',KN:'XCD',KW:'KWD',
+  KZ:'KZT',LA:'LAK',LB:'LBP',LC:'XCD',LI:'CHF',LK:'LKR',LR:'LRD',LS:'LSL',
+  LT:'EUR',LU:'EUR',LV:'EUR',LY:'LYD',MA:'MAD',MC:'EUR',MD:'MDL',ME:'EUR',
+  MG:'MGA',MH:'USD',MK:'MKD',ML:'XOF',MM:'MMK',MN:'MNT',MR:'MRU',MT:'EUR',
+  MU:'MUR',MV:'MVR',MW:'MWK',MX:'MXN',MY:'MYR',MZ:'MZN',NA:'NAD',NE:'XOF',
+  NG:'NGN',NI:'NIO',NL:'EUR',NO:'NOK',NP:'NPR',NR:'AUD',NZ:'NZD',OM:'OMR',
+  PA:'PAB',PE:'PEN',PG:'PGK',PH:'PHP',PK:'PKR',PL:'PLN',PT:'EUR',PW:'USD',
+  PY:'PYG',QA:'QAR',RO:'RON',RS:'RSD',RU:'RUB',RW:'RWF',SA:'SAR',SB:'SBD',
+  SC:'SCR',SD:'SDG',SE:'SEK',SG:'SGD',SI:'EUR',SK:'EUR',SL:'SLL',SM:'EUR',
+  SN:'XOF',SO:'SOS',SR:'SRD',SS:'SSP',ST:'STN',SV:'USD',SY:'SYP',SZ:'SZL',
+  TD:'XAF',TG:'XOF',TH:'THB',TJ:'TJS',TL:'USD',TM:'TMT',TN:'TND',TO:'TOP',
+  TR:'TRY',TT:'TTD',TV:'AUD',TW:'TWD',TZ:'TZS',UA:'UAH',UG:'UGX',US:'USD',
+  UY:'UYU',UZ:'UZS',VC:'XCD',VE:'VES',VN:'VND',VU:'VUV',WS:'WST',YE:'YER',
+  ZA:'ZAR',ZM:'ZMW',ZW:'ZWL',
+};
+
+const ALL_CURRENCIES = [
+  'AED','AFN','ALL','AMD','ANG','AOA','ARS','AUD','AZN','BAM','BBD','BDT','BGN',
+  'BHD','BIF','BND','BOB','BRL','BSD','BTN','BWP','BYN','BZD','CAD','CHF','CLP',
+  'CNY','COP','CRC','CUP','CVE','CZK','DJF','DKK','DOP','DZD','EGP','ERN','ETB',
+  'EUR','FJD','GBP','GEL','GHS','GMD','GNF','GTQ','GYD','HNL','HTG','HUF','IDR',
+  'ILS','INR','IQD','IRR','ISK','JMD','JOD','JPY','KES','KGS','KHR','KMF','KWD',
+  'KYD','KZT','LAK','LBP','LKR','LRD','LYD','MAD','MDL','MGA','MKD','MMK','MNT',
+  'MRU','MUR','MVR','MWK','MXN','MYR','MZN','NAD','NGN','NIO','NOK','NPR','NZD',
+  'OMR','PAB','PEN','PGK','PHP','PKR','PLN','PYG','QAR','RON','RSD','RUB','RWF',
+  'SAR','SBD','SCR','SDG','SEK','SGD','SLL','SOS','SRD','SSP','STN','SYP','SZL',
+  'THB','TJS','TMT','TND','TOP','TRY','TTD','TZS','UAH','UGX','USD','UYU','UZS',
+  'VES','VND','VUV','WST','XAF','XCD','XOF','YER','ZAR','ZMW',
+];
+
+/* ── CountrySelect component ─────────────────────────── */
+function CountrySelect({ value, onChange }) {
+  const [open, setOpen]     = useState(false);
+  const [search, setSearch] = useState('');
+  const ref     = useRef();
+  const listRef = useRef();
+  const searchRef = useRef();
+
+  useEffect(() => {
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  useEffect(() => {
+    if (open) { setSearch(''); setTimeout(() => searchRef.current?.focus(), 40); }
+  }, [open]);
+
+  const selected = COUNTRIES.find(c => c.code === value);
+  const filtered = COUNTRIES.filter(c =>
+    !search || c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.code.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="cs-wrap" ref={ref}>
+      <button type="button" className={`cs-trigger${open ? ' open' : ''}`}
+        onClick={() => setOpen(o => !o)}>
+        {selected ? (
+          <><span className="cs-flag">{flag(selected.code)}</span>
+            <span className="cs-name">{selected.name}</span></>
+        ) : (
+          <span className="cs-placeholder">Select country…</span>
+        )}
+        <NavArrowDown className="cs-arrow" />
+      </button>
+      {open && (
+        <div className="cs-dropdown">
+          <div className="cs-search-row">
+            <Search width={14} height={14} />
+            <input ref={searchRef} className="cs-search" placeholder="Search…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="cs-list" ref={listRef}>
+            {filtered.length === 0
+              ? <div className="cs-empty">No results</div>
+              : filtered.map(c => (
+              <div key={c.code}
+                className={`cs-option${value === c.code ? ' active' : ''}`}
+                onMouseDown={() => { onChange(c.code); setOpen(false); }}>
+                <span className="cs-flag">{flag(c.code)}</span>
+                <span className="cs-oname">{c.name}</span>
+                <span className="cs-ocode">{c.code}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const TABS = [
   { path: '',           labelKey: 'settings.company',    icon: Building },
@@ -106,15 +282,35 @@ function CompanySettings() {
   const [logoPreview, setLogoPreview] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const detectedCountry = useRef('');
 
   useEffect(() => {
+    // Detect country from IP (best-effort, silent fail)
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => { if (d?.country_code) detectedCountry.current = d.country_code; })
+      .catch(() => {});
+
     api.get('/company').then(res => {
       if (res.success) {
-        setForm(res.data || {});
-        if (res.data?.logo_url) setLogoPreview(`/uploads/logos/${res.data.logo_url}`);
+        const data = res.data || {};
+        // Auto-fill country from IP only if not already set
+        if (!data.country && detectedCountry.current) data.country = detectedCountry.current;
+        setForm(data);
+        if (data.logo_url) setLogoPreview(`/uploads/logos/${data.logo_url}`);
       }
       setLoading(false);
     });
+  }, []);
+
+  // If IP resolved after company loaded and country is still empty, fill it
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (detectedCountry.current) {
+        setForm(f => f.country ? f : { ...f, country: detectedCountry.current });
+      }
+    }, 1200);
+    return () => clearTimeout(t);
   }, []);
 
   const handleLogoFile = (file) => {
@@ -195,7 +391,13 @@ function CompanySettings() {
           <div className="form-group"><label>Address</label><textarea value={form.address || ''} onChange={set('address')} rows={2} /></div>
           <div className="form-row">
             <div className="form-group"><label>City</label><input value={form.city || ''} onChange={set('city')} /></div>
-            <div className="form-group"><label>Country</label><input value={form.country || ''} onChange={set('country')} /></div>
+            <div className="form-group"><label>Country</label>
+              <CountrySelect value={form.country || ''} onChange={code => setForm(f => ({
+                ...f,
+                country: code,
+                currency: COUNTRY_CURRENCY[code] || f.currency,
+              }))} />
+            </div>
           </div>
         </div>
 
@@ -204,7 +406,7 @@ function CompanySettings() {
           <div className="form-row">
             <div className="form-group"><label>Default Currency</label>
               <select value={form.currency || 'SAR'} onChange={set('currency')}>
-                {['SAR','USD','EUR','GBP','AED','KWD','QAR'].map(c => <option key={c}>{c}</option>)}
+                {ALL_CURRENCIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="form-group"><label>Default Language</label>
@@ -233,7 +435,7 @@ function CompanySettings() {
 
 /* ══ Branding Settings ═══════════════════════════════════ */
 function BrandingSettings() {
-  const [form, setForm] = useState({ primary_color: '#244066', accent_color: '#f2421b', invoice_template: 'classic' });
+  const [form, setForm] = useState({ primary_color: '#0D1B2A', accent_color: '#d63a17', invoice_template: 'classic' });
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));

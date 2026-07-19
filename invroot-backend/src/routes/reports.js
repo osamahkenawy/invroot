@@ -88,7 +88,13 @@ router.get('/dashboard', async (req, res) => {
       [tid]
     ).catch(() => []);
 
+    // Tenant default currency
+    const [{ currency: tenantCurrency }] = await query(
+      'SELECT COALESCE(currency, \'SAR\') AS currency FROM tenants WHERE id = ?', [tid]
+    ).catch(() => [{ currency: 'SAR' }]);
+
     res.json({ success: true, data: {
+      currency: tenantCurrency,
       kpis: {
         total_revenue:    revenue.total_revenue,
         total_collected:  revenue.total_collected,

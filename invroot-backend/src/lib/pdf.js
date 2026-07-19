@@ -26,9 +26,12 @@ export async function htmlToPdf(html, options = {}) {
 /**
  * Build the HTML for an invoice and return the PDF buffer.
  */
-export async function generateInvoicePdf(invoice, tenant, lang = 'en') {
+export async function generateInvoicePdf(invoice, tenant, lang = 'en', docType = 'invoice') {
   const isRTL = lang === 'ar';
   const dir = isRTL ? 'rtl' : 'ltr';
+  const docTitle = docType === 'quote'
+    ? (isRTL ? 'عرض سعر' : 'QUOTATION')
+    : (isRTL ? 'فاتورة' : 'INVOICE');
 
   const lineItemsHtml = (invoice.line_items || []).map(item => `
     <tr>
@@ -81,7 +84,7 @@ export async function generateInvoicePdf(invoice, tenant, lang = 'en') {
             ${tenant.logo_url ? `<img src="${config.app.apiUrl}/uploads/${tenant.logo_url}" alt="logo">` : `<strong>${tenant.company_name}</strong>`}
           </div>
           <div>
-            <div class="invoice-title">${isRTL ? 'فاتورة' : 'INVOICE'}</div>
+            <div class="invoice-title">${docTitle}</div>
             <div>#${invoice.invoice_number}</div>
           </div>
         </div>

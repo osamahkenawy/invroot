@@ -1,0 +1,73 @@
+.pay-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 0;
+}
+@media (max-width: 900px) { .pay-stats-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .pay-stats-row { grid-template-columns: 1fr; } }
+
+.pay-stat-card {
+  background: var(--card-bg, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.pay-stat-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pay-stat-icon svg { width: 22px; height: 22px; }
+.pay-stat-label { font-size: 12px; color: var(--text-muted, #6b7280); margin-bottom: 4px; }
+.pay-stat-value { font-size: 20px; font-weight: 700; color: var(--text-main, #111); }
+
+.toolbar-date {
+  height: 36px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: var(--card-bg, #fff);
+  color: var(--text-main, #111);
+}
+
+.pay-method-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--bg-main, #F2F4F7);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+/* Invoice picker */
+.pay-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.pay-picker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-main, #F2F4F7);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.pay-picker-item:hover { border-color: var(--secondary, #d63a17); background: #fff; }
+.pay-picker-num { font-weight: 700; font-size: 14px; font-family: monospace; }
+.pay-picker-client { font-size: 12px; color: var(--text-muted, #6b7280); margin-top: 2px; }
+.pay-picker-amount { font-weight: 700; font-size: 15px; color: var(--secondary, #d63a17); }

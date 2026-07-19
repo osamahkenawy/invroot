@@ -94,7 +94,7 @@
 
 /* Exposure bar in aging table */
 .aging-exposure-bar { height: 8px; background: #f1f4f8; border-radius: 4px; overflow: hidden; min-width: 80px; }
-.aging-exposure-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #3a5a8a); border-radius: 4px; }
+.aging-exposure-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #1e3448); border-radius: 4px; }
 
 /* ══ Sales report ══════════════════════════════════════ */
 .sales-total-bar { font-size: 13px; color: var(--text-muted); background: #fafbfc; border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; }
@@ -111,7 +111,7 @@
   color: var(--text-main);
   cursor: pointer;
 }
-.report-date-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(36,64,102,.08); }
+.report-date-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,27,42,.08); }
 
 /* ══ Responsive ════════════════════════════════════════ */
 @media (max-width: 900px) {

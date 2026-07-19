@@ -155,7 +155,7 @@
 .team-grid { display: flex; flex-direction: column; gap: 10px; }
 .team-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; transition: box-shadow .15s; }
 .team-card:hover { box-shadow: var(--shadow-sm); }
-.team-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #3a5a8a 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.team-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #1e3448 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
 .team-info { flex: 1; }
 .team-name { font-size: 14px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
 .team-email { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
@@ -215,3 +215,56 @@
 }
 .num-format-label { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
 .num-format-desc { font-size: 12px; color: var(--text-muted); }
+
+/* ── CountrySelect ──────────────────────────────────── */
+.cs-wrap { position: relative; width: 100%; }
+
+.cs-trigger {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px; background: var(--bg-main);
+  font-size: 13.5px; color: var(--text-primary);
+  cursor: pointer; text-align: left; transition: border-color .2s;
+}
+.cs-trigger:hover, .cs-trigger.open { border-color: var(--primary); }
+.cs-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
+.cs-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-placeholder { flex: 1; color: var(--text-muted); }
+.cs-arrow { width: 14px; height: 14px; color: var(--text-muted); margin-left: auto; flex-shrink: 0; transition: transform .2s; }
+.cs-trigger.open .cs-arrow { transform: rotate(180deg); }
+
+.cs-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 500;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  overflow: hidden;
+}
+
+.cs-search-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.cs-search-row svg { color: var(--text-muted); flex-shrink: 0; }
+.cs-search {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 13px; color: var(--text-primary);
+}
+
+.cs-list {
+  max-height: 220px; overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.cs-list::-webkit-scrollbar { width: 4px; }
+.cs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.cs-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer; transition: background .12s;
+}
+.cs-option:hover { background: var(--hover-bg); }
+.cs-option.active { background: #eef3ff; }
+.cs-option .cs-flag { font-size: 20px; }
+.cs-oname { flex: 1; font-size: 13.5px; color: var(--text-primary); }
+.cs-ocode { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: .04em; }
+.cs-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }

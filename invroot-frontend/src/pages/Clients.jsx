@@ -10,7 +10,7 @@ import { fmtCurrency } from '../utils/currency.js';
 import './Clients.css';
 
 const AVATAR_COLORS = [
-  ['#244066','#fff'], ['#7c3aed','#fff'], ['#059669','#fff'],
+  ['#0D1B2A','#fff'], ['#7c3aed','#fff'], ['#059669','#fff'],
   ['#d97706','#fff'], ['#dc2626','#fff'], ['#0891b2','#fff'],
   ['#db2777','#fff'], ['#65a30d','#fff'],
 ];

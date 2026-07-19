@@ -23,6 +23,10 @@ import Settings     from './pages/Settings.jsx';
 import Integrations from './pages/Integrations.jsx';
 import AuditLog     from './pages/AuditLog.jsx';
 import ClientPortal from './pages/ClientPortal/index.jsx';
+import Expenses     from './pages/Expenses.jsx';
+import Banking      from './pages/Banking.jsx';
+import TimeTracking from './pages/TimeTracking.jsx';
+import Reminders    from './pages/Reminders.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
@@ -65,6 +69,10 @@ export default function App() {
             <Route path="/settings/*"    element={<Settings />} />
             <Route path="/integrations"  element={<Integrations />} />
             <Route path="/audit"         element={<AuditLog />} />
+            <Route path="/expenses"      element={<Expenses />} />
+            <Route path="/banking"       element={<Banking />} />
+            <Route path="/time-tracking" element={<TimeTracking />} />
+            <Route path="/reminders"     element={<Reminders />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

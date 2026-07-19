@@ -1,0 +1,173 @@
+.rem-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--card-bg, #fff);
+  padding: 0 20px;
+}
+.rem-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted, #6b7280);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.rem-tab:hover { color: var(--primary, #0D1B2A); }
+.rem-tab.active {
+  color: var(--secondary, #d63a17);
+  border-bottom-color: var(--secondary, #d63a17);
+  font-weight: 600;
+}
+
+/* ── Rules grid ── */
+.rem-rules-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+.rem-rule-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-main, #F2F4F7);
+  transition: border-color .15s;
+}
+.rem-rule-card.inactive { opacity: .55; }
+.rem-rule-card:hover { border-color: var(--secondary, #d63a17); }
+.rem-rule-left { display: flex; align-items: center; gap: 14px; }
+.rem-rule-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.rem-rule-name { font-weight: 600; font-size: 14px; color: var(--text-main, #111); }
+.rem-rule-meta { font-size: 12px; color: var(--text-muted, #6b7280); margin-top: 2px; }
+.rem-channel-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.rem-rule-actions { display: flex; align-items: center; gap: 8px; }
+
+/* Toggle switch */
+.rem-toggle {
+  position: relative;
+  width: 44px; height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.rem-toggle.on  { background: var(--secondary, #d63a17); }
+.rem-toggle.off { background: #d1d5db; }
+.rem-toggle-knob {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+  display: block;
+}
+.rem-toggle.on .rem-toggle-knob { transform: translateX(20px); }
+
+/* ── Templates grid ── */
+.rem-tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+.rem-tpl-card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--bg-main, #F2F4F7);
+}
+.rem-tpl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.rem-tpl-name { font-weight: 600; font-size: 14px; }
+.rem-tpl-type {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f0f4ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.rem-tpl-subject {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rem-tpl-subject.ar { direction: rtl; }
+.rem-tpl-actions { margin-top: 12px; }
+
+/* ── Template modal ── */
+.rem-tpl-modal { max-width: 760px; width: 95%; }
+.rem-lang-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
+.rem-lang-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.rem-merge-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 16px;
+  padding: 10px 14px;
+  background: #f8faff;
+  border-radius: 8px;
+  border: 1px solid #e0e7ff;
+}
+.rem-merge-label { font-size: 12px; color: var(--text-muted, #6b7280); font-weight: 500; }
+.rem-merge-chip {
+  background: var(--primary, #0D1B2A);
+  color: #e2e8f0;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  cursor: pointer;
+  user-select: all;
+}
+
+/* ── Log status badge ── */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+  .rem-lang-tabs { grid-template-columns: 1fr; }
+  .rem-tpl-grid  { grid-template-columns: 1fr; }
+}

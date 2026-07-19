@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
 import { logAudit } from '../lib/audit-logger.js';
 import { nextDocNumber } from '../lib/numbering.js';
+import { generateInvoicePdf } from '../lib/pdf.js'; // reuse invoice template for quotes
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -103,6 +104,54 @@ router.put('/:id/status', async (req, res) => {
     if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
     await execute('UPDATE quotes SET status = ? WHERE id = ? AND tenant_id = ?', [status, req.params.id, req.tenantId]);
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+/* ── DELETE /api/quotes/:id ─────────────────────────── */
+router.delete('/:id', async (req, res) => {
+  try {
+    const [q] = await query('SELECT id, status FROM quotes WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
+    if (!q) return res.status(404).json({ success: false, message: 'Quote not found' });
+    if (q.status === 'converted') return res.status(400).json({ success: false, message: 'Cannot delete a converted quote' });
+    await execute('DELETE FROM quotes WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+/* ── GET /api/quotes/:id/pdf ────────────────────────── */
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const [quote] = await query(
+      `SELECT q.*, c.name AS client_name, c.email AS client_email, c.billing_address AS client_address
+       FROM quotes q LEFT JOIN clients c ON q.client_id = c.id
+       WHERE q.id = ? AND q.tenant_id = ?`,
+      [req.params.id, req.tenantId]
+    );
+    if (!quote) return res.status(404).json({ success: false, message: 'Quote not found' });
+
+    const [tenant] = await query('SELECT * FROM tenants WHERE id = ?', [req.tenantId]);
+    const [sig] = await query(
+      'SELECT signature_url, name AS signatory_name, title AS signatory_title FROM company_signatories WHERE tenant_id = ? AND is_default = 1 LIMIT 1',
+      [req.tenantId]
+    ).catch(() => [null]);
+    const tenantBranding = { ...(tenant || {}), ...(sig || {}) };
+
+    // Reuse invoice PDF template but override title label
+    const lang = req.query.lang || tenant?.lang || 'en';
+    const lineItems = typeof quote.line_items === 'string' ? JSON.parse(quote.line_items || '[]') : (quote.line_items || []);
+    const pdfData = {
+      ...quote,
+      line_items: lineItems,
+      invoice_number: quote.quote_number,  // rename so template renders it
+      issue_date: quote.created_at?.toString().split('T')[0] || '',
+      due_date: quote.valid_until || '',
+      _isQuote: true,
+    };
+
+    const pdfBuffer = await generateInvoicePdf(pdfData, tenantBranding, lang, 'quote');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="quote-${quote.quote_number}.pdf"`);
+    res.send(pdfBuffer);
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

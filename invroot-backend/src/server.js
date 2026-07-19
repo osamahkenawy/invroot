@@ -34,6 +34,9 @@ import uploadRoutes       from './routes/uploads.js';
 import superAdminRoutes   from './routes/super-admin.js';
 import tenantsRoutes      from './routes/tenants.js';
 import stripeRoutes       from './routes/stripe.js';
+import expenseRoutes      from './routes/expenses.js';
+import bankingRoutes      from './routes/banking.js';
+import timeTrackingRoutes from './routes/time-tracking.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -113,6 +116,9 @@ app.use('/api/uploads',       uploadRoutes);
 app.use('/api/super-admin',   superAdminRoutes);
 app.use('/api/tenants',       tenantsRoutes);
 app.use('/api/stripe',        stripeRoutes);
+app.use('/api/expenses',      expenseRoutes);
+app.use('/api/banking',       bankingRoutes);
+app.use('/api/time-tracking', timeTrackingRoutes);
 
 /* ── Health check ─────────────────────────────────────── */
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));

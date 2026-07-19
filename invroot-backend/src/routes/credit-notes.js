@@ -47,4 +47,45 @@ router.post('/', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+/* ── PUT /api/credit-notes/:id/void ─────────────────── */
+router.put('/:id/void', async (req, res) => {
+  try {
+    const [cn] = await query('SELECT * FROM credit_notes WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
+    if (!cn) return res.status(404).json({ success: false, message: 'Credit note not found' });
+    if (cn.status === 'voided') return res.status(400).json({ success: false, message: 'Already voided' });
+    await execute("UPDATE credit_notes SET status = 'voided' WHERE id = ?", [cn.id]);
+    // Reverse client balance
+    await execute('UPDATE clients SET credit_balance = credit_balance - ? WHERE id = ?', [cn.amount, cn.client_id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+/* ── PUT /api/credit-notes/:id/apply ────────────────── */
+router.put('/:id/apply', async (req, res) => {
+  try {
+    const [cn] = await query('SELECT * FROM credit_notes WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
+    if (!cn) return res.status(404).json({ success: false, message: 'Credit note not found' });
+    if (!['issued'].includes(cn.status)) return res.status(400).json({ success: false, message: 'Can only apply issued credit notes' });
+    await execute("UPDATE credit_notes SET status = 'applied' WHERE id = ?", [cn.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+/* ── GET /api/credit-notes/summary ──────────────────── */
+router.get('/summary', async (req, res) => {
+  try {
+    const [row] = await query(
+      `SELECT
+         COALESCE(SUM(amount),0) AS total_issued,
+         COALESCE(SUM(CASE WHEN status='applied' THEN amount ELSE 0 END),0) AS total_applied,
+         COALESCE(SUM(CASE WHEN status='issued'  THEN amount ELSE 0 END),0) AS total_pending,
+         COUNT(*) AS count
+       FROM credit_notes WHERE tenant_id = ?`,
+      [req.tenantId]
+    );
+    const [{ currency }] = await query("SELECT COALESCE(currency,'SAR') AS currency FROM tenants WHERE id = ?", [req.tenantId]).catch(() => [{ currency: 'SAR' }]);
+    res.json({ success: true, data: { ...row, currency } });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 export default router;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
 import Loader from '../components/Loader.jsx';
-import { Plus, Xmark, SendMail, Check, Page, Trash } from 'iconoir-react';
+import { Plus, Xmark, SendMail, Check, Page, Trash, Download } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
 
@@ -26,6 +26,14 @@ export default function Quotes() {
   };
 
   useEffect(() => { fetchQuotes(); }, [status]);
+
+  const downloadPdf = (q) => api.download(`/quotes/${q.id}/pdf`, `quote-${q.quote_number}.pdf`);
+
+  const deleteQuote = async (id) => {
+    if (!confirm(t('quotes.confirm_delete'))) return;
+    await api.delete(`/quotes/${id}`);
+    fetchQuotes();
+  };
 
   const convertToInvoice = async (id) => {
     if (!confirm(t('quotes.confirm_convert'))) return;
@@ -93,6 +101,8 @@ export default function Quotes() {
                         {q.status === 'draft'  && <button className="btn btn-sm" onClick={() => markStatus(q.id,'sent')}><SendMail /></button>}
                         {q.status === 'sent'   && <button className="btn btn-sm btn-success" onClick={() => markStatus(q.id,'accepted')}><Check /></button>}
                         {q.status === 'sent'   && <button className="btn btn-sm btn-danger"  onClick={() => markStatus(q.id,'rejected')}><Xmark /></button>}
+                        <button className="btn btn-sm btn-outline" title="Download PDF" onClick={() => downloadPdf(q)}><Download /></button>
+                        {q.status==='draft' && <button className="btn btn-sm btn-danger" onClick={() => deleteQuote(q.id)}><Trash /></button>}
                         {['accepted','sent'].includes(q.status) && (
                           <button className="btn btn-sm btn-primary" onClick={() => convertToInvoice(q.id)}>
                             {t('quotes.convert_invoice')}
@@ -338,6 +348,7 @@ function QuoteDetailModal({ quote, onClose, onAction }) {
         </div>
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>{t('common.close')}</button>
+          <button className="btn btn-outline" onClick={() => api.download(`/quotes/${q.id}/pdf`, `quote-${q.quote_number}.pdf`)}><Download /> PDF</button>
           {q.status==='draft'  && <button className="btn btn-primary" onClick={() => act('sent')}><SendMail /> {t('quotes.mark_sent')}</button>}
           {q.status==='sent'   && <button className="btn btn-success" onClick={() => act('accepted')}><Check /> {t('quotes.accept')}</button>}
           {q.status==='sent'   && <button className="btn btn-danger"  onClick={() => act('rejected')}><Xmark /> {t('quotes.reject')}</button>}

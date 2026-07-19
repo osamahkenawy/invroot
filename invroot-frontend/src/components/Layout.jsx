@@ -5,7 +5,8 @@ import { AuthContext } from '../context/AuthContext.jsx';
 import {
   HomeSimple, User, Page, Dollar, DollarCircle, StatsUpSquare,
   Settings, Network, Bell, Menu, LogOut, RefreshDouble,
-  Archive, Percentage, List, Book, WarningTriangle, ShieldCheck, PrintingPage
+  Archive, Percentage, List, Book, WarningTriangle, ShieldCheck, PrintingPage,
+  Coins, Bank, Clock
 } from 'iconoir-react';
 import './Layout.css';
 
@@ -24,6 +25,10 @@ const iconMap = {
   settings:     Settings,
   integrations: Network,
   audit:        ShieldCheck,
+  expenses:     Coins,
+  banking:      Bank,
+  'time-tracking': Clock,
+  reminders:    Bell,
 };
 
 export default function Layout() {
@@ -49,22 +54,26 @@ export default function Layout() {
         { path: '/quotes',       labelKey: 'nav.quotes',       iconKey: 'quotes' },
         { path: '/recurring',    labelKey: 'nav.recurring',    iconKey: 'recurring' },
         { path: '/credit-notes', labelKey: 'nav.credit_notes', iconKey: 'credit-notes' },
+        { path: '/reminders',    labelKey: 'nav.reminders',    iconKey: 'reminders' },
       ],
     },
     {
       titleKey: 'nav_sections.finance',
       items: [
-        { path: '/payments',  labelKey: 'nav.payments',  iconKey: 'payments' },
-        { path: '/receipts',  labelKey: 'nav.receipts',  iconKey: 'receipts' },
-        { path: '/tax',       labelKey: 'nav.tax',       iconKey: 'tax' },
-        { path: '/reports',   labelKey: 'nav.reports',   iconKey: 'reports' },
+        { path: '/payments',       labelKey: 'nav.payments',       iconKey: 'payments' },
+        { path: '/receipts',       labelKey: 'nav.receipts',       iconKey: 'receipts' },
+        { path: '/expenses',       labelKey: 'nav.expenses',       iconKey: 'expenses' },
+        { path: '/banking',        labelKey: 'nav.banking',        iconKey: 'banking' },
+        { path: '/tax',            labelKey: 'nav.tax',            iconKey: 'tax' },
+        { path: '/reports',        labelKey: 'nav.reports',        iconKey: 'reports' },
       ],
     },
     {
       titleKey: 'nav_sections.management',
       items: [
-        { path: '/clients',  labelKey: 'nav.clients',  iconKey: 'clients' },
-        { path: '/catalog',  labelKey: 'nav.catalog',  iconKey: 'catalog' },
+        { path: '/clients',       labelKey: 'nav.clients',       iconKey: 'clients' },
+        { path: '/catalog',       labelKey: 'nav.catalog',       iconKey: 'catalog' },
+        { path: '/time-tracking', labelKey: 'nav.time_tracking', iconKey: 'time-tracking' },
       ],
     },
     {

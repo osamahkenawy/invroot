@@ -142,3 +142,73 @@
   .card-header { flex-direction: column; align-items: flex-start; gap: 6px; }
   .dash-status-badge { font-size: 11px; padding: 2px 7px; }
 }
+
+/* ── Fin Row (Receivables / Payables / Cashflow) ─────── */
+.dash-fin-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.dash-fin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.dash-fin-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+}
+.dash-fin-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.dash-fin-icon svg { width: 22px; height: 22px; }
+.dash-fin-icon.rcv  { background: #eff6ff; color: #2563eb; }
+.dash-fin-icon.pay  { background: #fff7ed; color: #d97706; }
+.dash-fin-label {
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px;
+}
+.dash-fin-total {
+  font-size: 20px; font-weight: 800; color: var(--text-primary); letter-spacing: -.4px;
+}
+.dash-fin-bars { display: flex; flex-direction: column; gap: 10px; }
+.dash-fin-bar-row {
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+}
+.dash-fin-bar-label { width: 50px; color: var(--text-muted); flex-shrink: 0; }
+.dash-fin-bar-track {
+  flex: 1; height: 7px; border-radius: 4px; background: var(--border); overflow: hidden;
+}
+.dash-fin-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; min-width: 4px; }
+.dash-fin-bar-fill.blue   { background: #3b82f6; }
+.dash-fin-bar-fill.red    { background: #ef4444; }
+.dash-fin-bar-fill.orange { background: #f59e0b; }
+.dash-fin-bar-val { width: 72px; text-align: right; font-weight: 600; font-size: 11.5px; color: var(--text-secondary); }
+
+/* Cashflow summary card */
+.cashflow-card { display: flex; flex-direction: column; }
+.dash-cf-rows { display: flex; flex-direction: column; gap: 9px; }
+.dash-cf-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px;
+}
+.dash-cf-lbl {
+  display: flex; align-items: center; gap: 4px; color: var(--text-secondary);
+}
+.dash-cf-val { font-weight: 600; color: var(--text-primary); }
+.dash-cf-val.green { color: #16a34a; }
+.dash-cf-val.red   { color: #dc2626; }
+.dash-cf-divider {
+  height: 1px; background: var(--border); margin: 4px 0;
+}
+
+@media (max-width: 900px) {
+  .dash-fin-row { grid-template-columns: 1fr 1fr; }
+  .cashflow-card { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .dash-fin-row { grid-template-columns: 1fr; }
+}

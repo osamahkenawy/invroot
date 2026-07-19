@@ -58,6 +58,26 @@ router.post('/templates', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+/* ── PUT /api/reminders/templates/:id ───────────────── */
+router.put('/templates/:id', requireOwner, async (req, res) => {
+  try {
+    const { name, subject_en, body_en, subject_ar, body_ar, type } = req.body;
+    await execute(
+      'UPDATE notification_templates SET name=?,subject_en=?,body_en=?,subject_ar=?,body_ar=?,type=? WHERE id=? AND tenant_id=?',
+      [name, subject_en, body_en, subject_ar, body_ar, type, req.params.id, req.tenantId]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+/* ── DELETE /api/reminders/rules/:id ────────────────── */
+router.delete('/rules/:id', requireOwner, async (req, res) => {
+  try {
+    await execute('DELETE FROM reminder_rules WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 /* ── GET /api/reminders/log ─────────────────────────── */
 router.get('/log', async (req, res) => {
   try {
