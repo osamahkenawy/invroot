@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { AuthContext } from '../../context/AuthContext.jsx';
 import { fmtCurrency } from '../../utils/currency.js';
 import { toInputDate } from '../../utils/date.js';
-import { Plus, Trash, Xmark, Copy, User } from 'iconoir-react';
+import { Plus, Trash, Xmark, Copy, User, WarningTriangle, Upload } from 'iconoir-react';
 import './InvoiceFormModal.css';
 
 const CURRENCIES = ['SAR','USD','EUR','GBP','AED','KWD','QAR','EGP','OMR','BHD'];
@@ -32,6 +33,7 @@ function addDays(dateStr, days) {
 export default function InvoiceFormModal({ invoice, onClose, onSave }) {
   const { t } = useTranslation();
   const { tenant } = useContext(AuthContext);
+  const navigate = useNavigate();
   const isEdit = !!invoice;
 
   const [clients,     setClients]     = useState([]);
@@ -40,6 +42,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
   const [error,       setError]       = useState('');
   const [selClient,   setSelClient]   = useState(null);
   const [showNewClient, setShowNewClient] = useState(false);
+  const [branding,    setBranding]    = useState(null);  // company branding check
 
   const [form, setForm] = useState(() => ({
     client_id:     invoice?.client_id     || '',
@@ -77,6 +80,8 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
   useEffect(() => {
     reloadClients();
     api.get('/catalog?limit=200').then(r => { if (r.success) setCatalog(r.data); });
+    // Load company branding to check logo + stamp
+    api.get('/company').then(r => { if (r.success) setBranding(r.data); });
   }, []);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -206,6 +211,44 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
         <div className="inv-form-body">
           {error && <div className="form-error inv-form-error">{error}</div>}
 
+          {/* ── Missing branding warnings ────────────── */}
+          {branding !== null && (!branding?.logo_url || !branding?.stamp_url) && (
+            <div className="inv-branding-warnings">
+              {!branding?.logo_url && (
+                <div className="inv-branding-alert">
+                  <WarningTriangle className="inv-branding-alert-icon" />
+                  <div className="inv-branding-alert-text">
+                    <strong>No company logo uploaded.</strong>
+                    {' '}Your invoice PDF will not include a logo.
+                    <button
+                      type="button"
+                      className="inv-branding-link"
+                      onClick={() => { onClose(); navigate('/settings/branding'); }}
+                    >
+                      Add logo →
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!branding?.stamp_url && (
+                <div className="inv-branding-alert inv-branding-alert--stamp">
+                  <WarningTriangle className="inv-branding-alert-icon" />
+                  <div className="inv-branding-alert-text">
+                    <strong>No company stamp uploaded.</strong>
+                    {' '}Official stamp will not appear on the PDF.
+                    <button
+                      type="button"
+                      className="inv-branding-link"
+                      onClick={() => { onClose(); navigate('/settings/stamp'); }}
+                    >
+                      Add stamp →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Banner message ──────────────────────── */}
           <div className="inv-banner-row">
             <input
@@ -245,11 +288,21 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                 </div>
               </div>
             </div>
-            {/* Logo placeholder */}
-            <div className="inv-logo-box">
-              {tenant?.logo_url
-                ? <img src={`/uploads/logos/${tenant.logo_url}`} alt="logo" />
-                : <div className="inv-logo-placeholder"><span>YOUR</span><span>LOGO</span><span>HERE</span></div>
+            {/* Logo box — clickable if no logo */}
+            <div
+              className={`inv-logo-box ${!branding?.logo_url ? 'inv-logo-box--empty' : ''}`}
+              onClick={() => !branding?.logo_url && (onClose(), navigate('/settings/branding'))}
+              title={branding?.logo_url ? tenant?.company_name : 'Click to add your company logo'}
+            >
+              {branding?.logo_url
+                ? <img src={`/uploads/logos/${branding.logo_url}`} alt="logo" />
+                : (
+                  <div className="inv-logo-placeholder">
+                    <Upload style={{ width: 22, height: 22, color: 'var(--secondary)' }} />
+                    <span style={{ color: 'var(--secondary)', fontSize: 10, fontWeight: 700, marginTop: 4 }}>ADD LOGO</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>Click here</span>
+                  </div>
+                )
               }
             </div>
           </div>

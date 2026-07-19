@@ -49,6 +49,55 @@
 }
 .inv-form-error { margin-bottom: 16px; }
 
+/* ── Missing branding warnings ─────────────── */
+.inv-branding-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.inv-branding-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fff8e1;
+  border: 1px solid #fbbf24;
+  border-left: 4px solid #f59e0b;
+}
+.inv-branding-alert--stamp {
+  background: #fff1f2;
+  border-color: #fda4af;
+  border-left-color: #f43f5e;
+}
+.inv-branding-alert-icon {
+  width: 18px; height: 18px;
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.inv-branding-alert--stamp .inv-branding-alert-icon { color: #f43f5e; }
+.inv-branding-alert-text {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+}
+.inv-branding-link {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.inv-branding-link:hover { background: var(--secondary); }
+
 /* ── Banner message ────────────────────────── */
 .inv-banner-row { margin-bottom: 20px; }
 .inv-banner-input {
@@ -100,12 +149,23 @@
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+  transition: border-color .15s, background .15s;
+}
+.inv-logo-box--empty {
+  cursor: pointer;
+  border-color: var(--secondary);
+  border-style: dashed;
+}
+.inv-logo-box--empty:hover {
+  background: #fff5f5;
+  border-color: var(--secondary-dark);
 }
 .inv-logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .inv-logo-placeholder {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
   color: var(--border); font-size: 11px; font-weight: 700; letter-spacing: 1px;
   user-select: none;
+  pointer-events: none;
 }
 
 /* ── From / To / Dates grid ────────────────── */
