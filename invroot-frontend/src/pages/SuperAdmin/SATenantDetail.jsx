@@ -3,155 +3,259 @@ import { useParams, Link } from 'react-router-dom';
 import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
-const STATUS_COLOR = { active:'sa-status-active', trial:'sa-status-trial', suspended:'sa-status-suspended', cancelled:'sa-status-cancelled' };
-const INV_STATUS   = { paid:'sa-status-paid', overdue:'sa-status-overdue', draft:'sa-status-draft', sent:'sa-status-sent', partial:'sa-status-partial' };
-function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtAmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
+function fmtN(n)   { return Number(n || 0).toLocaleString(); }
+
+const INV_STATUS = ['paid','sent','overdue','draft','partial'];
+const AVATAR_COLORS = ['#3b82f6','#10b981','#7c3aed','#d63a17','#0891b2','#f59e0b','#ec4899'];
+const avatarColor   = (name = '') => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
+const KIco = {
+  invoiced: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  collected:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
+  users:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  rate:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+};
 
 export default function SATenantDetail() {
   const { id }      = useParams();
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [plan,    setPlan]    = useState('');
+  const [tab,     setTab]     = useState('overview');
 
-  useEffect(() => {
-    saApi.get(`/tenants/${id}`).then(r => {
-      if (r.success) { setData(r.data); setPlan(r.data.tenant?.plan || 'free'); }
-      setLoading(false);
-    });
-  }, [id]);
-
-  const updateStatus = async (newStatus) => {
-    await saApi.put(`/tenants/${id}/status`, { status: newStatus });
+  const reload = async () => {
     const r = await saApi.get(`/tenants/${id}`);
-    if (r.success) setData(r.data);
+    if (r.success) { setData(r.data); setPlan(r.data.tenant?.plan || 'free'); }
   };
 
-  const updatePlan = async () => {
-    await saApi.put(`/tenants/${id}/plan`, { plan });
-    const r = await saApi.get(`/tenants/${id}`);
-    if (r.success) setData(r.data);
+  useEffect(() => { setLoading(true); reload().finally(() => setLoading(false)); }, [id]);
+
+  const updateStatus = async (newStatus) => { await saApi.put(`/tenants/${id}/status`, { status: newStatus }); reload(); };
+  const updatePlan   = async () => { await saApi.put(`/tenants/${id}/plan`, { plan }); reload(); };
+
+  const impersonate = async () => {
+    const r = await saApi.post(`/tenants/${id}/impersonate`);
+    if (r.success && r.data?.token) { localStorage.setItem('auth_token', r.data.token); window.open('/','_blank'); }
+    else alert('Impersonation failed');
   };
 
-  if (loading) return <div className="sa-loading">Loading tenant...</div>;
+  if (loading) return <div className="sa-loading">Loading tenant…</div>;
   if (!data)   return <div className="sa-empty">Tenant not found.</div>;
 
-  const t = data.tenant;
+  const t       = data.tenant;
+  const bg      = avatarColor(t.company_name);
+  const initial = (t.company_name || '?')[0].toUpperCase();
+  const collectionRate = data.total_invoiced > 0
+    ? Math.round(data.total_collected / data.total_invoiced * 100)
+    : 0;
 
   return (
     <div>
-      <div className="sa-page-header">
-        <div>
-          <Link to="/admin/tenants" style={{ color:'#6b7280', textDecoration:'none', fontSize:13 }}>← All Tenants</Link>
-          <h1 className="sa-page-title" style={{ marginTop:6 }}>{t.company_name}</h1>
-          <p className="sa-page-sub">{t.owner_email}</p>
+      {/* ── Breadcrumb ── */}
+      <div style={{ marginBottom: 16 }}>
+        <Link to="/admin/tenants" style={{ color:'#64748b', textDecoration:'none', fontSize:13, display:'inline-flex', alignItems:'center', gap:4 }}>
+          ← All Tenants
+        </Link>
+      </div>
+
+      {/* ── Hero ── */}
+      <div className="sa-tenant-hero">
+        <div className="sa-tenant-hero-avatar" style={{ background:`linear-gradient(135deg,${bg},${bg}88)` }}>
+          {initial}
         </div>
-        <div style={{ display:'flex', gap:8 }}>
+        <div className="sa-tenant-hero-info">
+          <div className="sa-tenant-hero-name">{t.company_name}</div>
+          <div className="sa-tenant-hero-email">
+            {t.owner_email}
+            &nbsp;&nbsp;
+            <span className={`sa-badge ${t.status || 'active'}`} style={{ fontSize: 11 }}>{t.status}</span>
+            &nbsp;
+            <span className="sa-badge no-dot" style={{ background:'rgba(255,255,255,.1)', color:'rgba(255,255,255,.7)', fontSize:11 }}>
+              {t.plan || 'free'} plan
+            </span>
+          </div>
+        </div>
+        <div className="sa-tenant-hero-actions">
+          <button className="sa-btn sa-btn-amber sa-btn-sm" onClick={impersonate}>Login as Tenant</button>
           {t.status === 'active'
-            ? <button className="sa-btn sa-btn-danger" onClick={() => updateStatus('suspended')}>Suspend Tenant</button>
-            : <button className="sa-btn sa-btn-success" onClick={() => updateStatus('active')}>Activate Tenant</button>
+            ? <button className="sa-btn sa-btn-danger sa-btn-sm" onClick={() => updateStatus('suspended')}>Suspend</button>
+            : <button className="sa-btn sa-btn-success sa-btn-sm" onClick={() => updateStatus('active')}>Activate</button>
           }
         </div>
       </div>
 
-      {/* ── Tenant KPIs ── */}
-      <div className="sa-kpi-grid" style={{ gridTemplateColumns:'repeat(3,1fr)', marginBottom:20 }}>
+      {/* ── KPI row ── */}
+      <div className="sa-kpi-grid sa-kpi-grid-3" style={{ marginBottom: 20, gridTemplateColumns:'repeat(4,1fr)' }}>
         <div className="sa-kpi-card">
+          <div className="sa-kpi-top">
+            <div className="sa-kpi-icon-box purple">{KIco.invoiced}</div>
+          </div>
+          <div className="sa-kpi-value">{fmtAmt(data.total_invoiced)}</div>
           <div className="sa-kpi-label">Total Invoiced</div>
-          <div className="sa-kpi-value">{fmt(data.total_invoiced)}</div>
         </div>
         <div className="sa-kpi-card">
+          <div className="sa-kpi-top">
+            <div className="sa-kpi-icon-box green">{KIco.collected}</div>
+          </div>
+          <div className="sa-kpi-value">{fmtAmt(data.total_collected)}</div>
           <div className="sa-kpi-label">Total Collected</div>
-          <div className="sa-kpi-value">{fmt(data.total_collected)}</div>
         </div>
         <div className="sa-kpi-card">
-          <div className="sa-kpi-label">Status</div>
-          <div className="sa-kpi-value">
-            <span className={`sa-status-badge ${STATUS_COLOR[t.status] || ''}`} style={{ fontSize:16 }}>{t.status}</span>
+          <div className="sa-kpi-top">
+            <div className="sa-kpi-icon-box blue">{KIco.users}</div>
           </div>
+          <div className="sa-kpi-value">{fmtN(data.users?.length || 0)}</div>
+          <div className="sa-kpi-label">Team Members</div>
+        </div>
+        <div className="sa-kpi-card">
+          <div className="sa-kpi-top">
+            <div className="sa-kpi-icon-box teal">{KIco.rate}</div>
+          </div>
+          <div className="sa-kpi-value">{collectionRate}%</div>
+          <div className="sa-kpi-label">Collection Rate</div>
         </div>
       </div>
 
-      <div className="sa-two-col" style={{ marginBottom:20 }}>
-        {/* ── Plan management ── */}
-        <div className="sa-card">
-          <div className="sa-card-header"><span className="sa-card-title">Plan Management</span></div>
-          <div className="sa-card-body">
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <select className="sa-select" style={{ flex:1 }} value={plan} onChange={e => setPlan(e.target.value)}>
-                <option>free</option><option>starter</option><option>growth</option><option>enterprise</option>
-              </select>
-              <button className="sa-btn sa-btn-primary" onClick={updatePlan}>Update Plan</button>
-            </div>
-            <p style={{ marginTop:12, fontSize:12, color:'#9ca3af' }}>
-              Current plan: <strong>{t.plan || 'free'}</strong> · Created: {t.created_at?.slice(0,10)}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Users ── */}
-        <div className="sa-card">
-          <div className="sa-card-header">
-            <span className="sa-card-title">Users ({data.users?.length || 0})</span>
-          </div>
-          <div style={{ maxHeight:200, overflowY:'auto' }}>
-            <table className="sa-table">
-              <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
-              <tbody>
-                {(data.users || []).map(u => (
-                  <tr key={u.id}>
-                    <td>{u.full_name}</td>
-                    <td style={{ fontSize:12 }}>{u.email}</td>
-                    <td>{u.role}</td>
-                  </tr>
-                ))}
-                {!data.users?.length && <tr><td colSpan={3} className="sa-empty">No users</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Recent invoices ── */}
-      <div className="sa-card" style={{ marginBottom:20 }}>
-        <div className="sa-card-header">
-          <span className="sa-card-title">Recent Invoices</span>
-        </div>
-        <table className="sa-table">
-          <thead><tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody>
-            {(data.recent_invoices || []).map(inv => (
-              <tr key={inv.id}>
-                <td className="td-mono">{inv.invoice_number}</td>
-                <td>{inv.client_name}</td>
-                <td className="td-amt">{fmt(inv.total_amount)}</td>
-                <td><span className={`sa-status-badge ${INV_STATUS[inv.status] || ''}`}>{inv.status}</span></td>
-                <td className="td-mono">{inv.issue_date?.slice(0,10)}</td>
-              </tr>
-            ))}
-            {!data.recent_invoices?.length && <tr><td colSpan={5} className="sa-empty">No invoices</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Recent payments ── */}
+      {/* ── Tabs ── */}
       <div className="sa-card">
-        <div className="sa-card-header">
-          <span className="sa-card-title">Recent Payments</span>
+        <div className="sa-tabs">
+          {['overview','invoices','payments','users'].map(t => (
+            <button key={t} className={`sa-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
         </div>
-        <table className="sa-table">
-          <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr></thead>
-          <tbody>
-            {(data.recent_payments || []).map(p => (
-              <tr key={p.id}>
-                <td className="td-mono">{p.payment_date?.slice(0,10)}</td>
-                <td className="td-amt">{fmt(p.amount)}</td>
-                <td>{p.payment_method}</td>
-                <td className="td-mono">{p.reference_number || '—'}</td>
-              </tr>
-            ))}
-            {!data.recent_payments?.length && <tr><td colSpan={4} className="sa-empty">No payments</td></tr>}
-          </tbody>
-        </table>
+
+        {/* Overview tab */}
+        {tab === 'overview' && (
+          <div className="sa-tab-pane">
+            <div className="sa-two-col">
+              {/* Plan management */}
+              <div>
+                <div className="sa-section-label">Plan Management</div>
+                <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:16 }}>
+                  <select className="sa-select" style={{ flex:1 }} value={plan} onChange={e => setPlan(e.target.value)}>
+                    <option value="free">Free</option>
+                    <option value="starter">Starter</option>
+                    <option value="growth">Growth</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                  <button className="sa-btn sa-btn-primary" onClick={updatePlan}>Update Plan</button>
+                </div>
+                <div style={{ fontSize:12, color:'#6b7280', lineHeight:1.8 }}>
+                  <div>Current plan: <strong>{t.plan || 'free'}</strong></div>
+                  <div>Tenant ID: <code style={{ background:'#f1f5f9', padding:'1px 6px', borderRadius:4 }}>#{t.id}</code></div>
+                  <div>Joined: <strong>{t.created_at?.slice(0,10)}</strong></div>
+                </div>
+              </div>
+
+              {/* Invoice summary */}
+              <div>
+                <div className="sa-section-label">Invoice Breakdown</div>
+                {(data.invoice_summary || INV_STATUS).map((s, i) => {
+                  const status = typeof s === 'string' ? s : s.status;
+                  const count  = typeof s === 'string' ? 0  : Number(s.count);
+                  const amount = typeof s === 'string' ? 0  : Number(s.total_amount);
+                  return (
+                    <div key={status} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                      <span className={`sa-badge ${status}`}>{status}</span>
+                      <div style={{ textAlign:'right' }}>
+                        <span style={{ fontWeight:700, fontSize:13 }}>{fmtAmt(amount)}</span>
+                        <span style={{ color:'#94a3b8', fontSize:11, marginLeft:8 }}>{count} inv.</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Invoices tab */}
+        {tab === 'invoices' && (
+          <table className="sa-table">
+            <thead>
+              <tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Status</th><th>Issue Date</th><th>Due Date</th></tr>
+            </thead>
+            <tbody>
+              {(data.recent_invoices || []).map(inv => (
+                <tr key={inv.id}>
+                  <td className="td-mono">{inv.invoice_number}</td>
+                  <td>{inv.client_name}</td>
+                  <td className="td-amt">{fmtAmt(inv.total_amount)}</td>
+                  <td><span className={`sa-badge ${inv.status}`}>{inv.status}</span></td>
+                  <td className="td-mono">{inv.issue_date?.slice(0,10)}</td>
+                  <td className="td-mono">{inv.due_date?.slice(0,10)}</td>
+                </tr>
+              ))}
+              {!data.recent_invoices?.length && (
+                <tr><td colSpan={6}><div className="sa-empty">No invoices yet</div></td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* Payments tab */}
+        {tab === 'payments' && (
+          <table className="sa-table">
+            <thead>
+              <tr><th>Date</th><th>Invoice #</th><th>Amount</th><th>Method</th><th>Reference</th></tr>
+            </thead>
+            <tbody>
+              {(data.recent_payments || []).map(p => (
+                <tr key={p.id}>
+                  <td className="td-mono">{p.payment_date?.slice(0,10)}</td>
+                  <td className="td-mono">{p.invoice_number || '—'}</td>
+                  <td className="td-amt">{fmtAmt(p.amount)}</td>
+                  <td>
+                    <span className="sa-badge no-dot" style={{ background:'#f5f3ff', color:'#6d28d9' }}>
+                      {p.payment_method?.replace('_',' ')}
+                    </span>
+                  </td>
+                  <td className="td-mono">{p.reference_number || '—'}</td>
+                </tr>
+              ))}
+              {!data.recent_payments?.length && (
+                <tr><td colSpan={5}><div className="sa-empty">No payments yet</div></td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* Users tab */}
+        {tab === 'users' && (
+          <table className="sa-table">
+            <thead>
+              <tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+            </thead>
+            <tbody>
+              {(data.users || []).map(u => {
+                const ubg = avatarColor(u.full_name);
+                return (
+                  <tr key={u.id}>
+                    <td>
+                      <div className="sa-company-cell">
+                        <div className="sa-company-avatar" style={{ width:30, height:30, fontSize:11, background:`linear-gradient(135deg,${ubg},${ubg}bb)` }}>
+                          {(u.full_name||'?')[0].toUpperCase()}
+                        </div>
+                        <span className="sa-company-name">{u.full_name}</span>
+                      </div>
+                    </td>
+                    <td style={{ fontSize:12 }}>{u.email}</td>
+                    <td>
+                      <span className="sa-badge no-dot" style={{ background:'#f1f5f9', color:'#374151' }}>{u.role}</span>
+                    </td>
+                    <td className="td-mono">{u.created_at?.slice(0,10)}</td>
+                  </tr>
+                );
+              })}
+              {!data.users?.length && (
+                <tr><td colSpan={4}><div className="sa-empty">No users found</div></td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

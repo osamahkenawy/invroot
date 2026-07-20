@@ -55,7 +55,8 @@ export default function SAInvoices() {
       <div className="sa-card">
         <div className="sa-toolbar">
           <div className="sa-search">
-            🔍<input
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:'#94a3b8',flexShrink:0}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search invoice # or client..."
@@ -69,8 +70,8 @@ export default function SAInvoices() {
             <option value="">All statuses</option>
             {['draft','sent','paid','overdue','partial','cancelled'].map(s=><option key={s}>{s}</option>)}
           </select>
-          <input className="sa-select" type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} title="From date" />
-          <input className="sa-select" type="date" value={dateTo}   onChange={e => { setDateTo(e.target.value); setPage(1); }}   title="To date" />
+          <input className="sa-input-date" type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} title="From date" />
+          <input className="sa-input-date" type="date" value={dateTo}   onChange={e => { setDateTo(e.target.value); setPage(1); }}   title="To date" />
         </div>
 
         {loading
@@ -87,7 +88,7 @@ export default function SAInvoices() {
                   <td style={{ fontWeight:600, fontSize:12 }}>{inv.company_name}</td>
                   <td>{inv.client_name}</td>
                   <td className="td-amt">{fmt(inv.total_amount)}</td>
-                  <td><span className={`sa-status-badge ${INV_STATUS[inv.status] || ''}`}>{inv.status}</span></td>
+                  <td><span className={`sa-badge ${inv.status || 'draft'}`}>{inv.status}</span></td>
                   <td className="td-mono">{inv.issue_date?.slice(0,10)}</td>
                   <td className="td-mono">{inv.due_date?.slice(0,10)}</td>
                 </tr>

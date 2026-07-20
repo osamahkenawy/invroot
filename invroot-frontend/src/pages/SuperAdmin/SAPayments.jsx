@@ -63,8 +63,8 @@ export default function SAPayments() {
               <option key={m} value={m}>{m.replace('_',' ')}</option>
             ))}
           </select>
-          <input className="sa-select" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="From date" />
-          <input className="sa-select" type="date" value={dateTo}   onChange={e => setDateTo(e.target.value)}   title="To date" />
+          <input className="sa-input-date" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="From date" />
+          <input className="sa-input-date" type="date" value={dateTo}   onChange={e => setDateTo(e.target.value)}   title="To date" />
         </div>
 
         {loading

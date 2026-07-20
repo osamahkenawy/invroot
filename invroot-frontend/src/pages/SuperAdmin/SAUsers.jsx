@@ -47,7 +47,7 @@ export default function SAUsers() {
       <div className="sa-card">
         <div className="sa-toolbar">
           <div className="sa-search">
-            🔍<input
+            {SearchIcon}<input
               value={search}
               onChange={e => { setSearch(e.target.value); }}
               placeholder="Search by name or email..."
@@ -78,10 +78,10 @@ export default function SAUsers() {
                   <td style={{ fontSize:12 }}>{u.email}</td>
                   <td style={{ fontSize:12, color:'#6b7280' }}>{u.company_name || '—'}</td>
                   <td>
-                    <span className="sa-status-badge" style={{ background:'#f1f5f9', color:'#374151' }}>{u.role}</span>
+                    <span className="sa-badge no-dot" style={{ background:'#f1f5f9', color:'#374151' }}>{u.role}</span>
                   </td>
                   <td>
-                    <span className={`sa-status-badge ${u.is_active ? 'sa-status-active' : 'sa-status-cancelled'}`}>
+                    <span className={`sa-badge ${u.is_active ? 'active' : 'cancelled'}`}>
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
