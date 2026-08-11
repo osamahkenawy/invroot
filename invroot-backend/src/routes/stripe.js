@@ -213,11 +213,34 @@ async function applySubscription(sub) {
  * any duplicate delivery a no-op instead of a double count. */
 export { recordCouponRedemption as recordCouponRedemptionForTest };
 
+/* Invoice shape differs by API VERSION, and not the one we pin.
+ *
+ * `config.stripe.apiVersion` governs calls we make. The shape of an inbound
+ * event is decided by the API version stored on the webhook destination, which
+ * is chosen in the Stripe dashboard — a newer default can be selected there by
+ * anyone creating an endpoint, with no change to this repo.
+ *
+ * That matters because Stripe removed `invoice.subscription` after 2025 and
+ * moved it under `invoice.parent.subscription_details`. Reading only the old
+ * field means a modern destination silently yields undefined: coupon
+ * redemptions stop being recorded and failed payments lose their tenant, with
+ * the webhook still answering 200 so nothing looks wrong. Accept both. */
+function subscriptionIdOf(invoice) {
+  const found = invoice?.parent?.subscription_details?.subscription ?? invoice?.subscription;
+  return typeof found === 'string' ? found : found?.id || null;
+}
+
+function subscriptionMetadataOf(invoice) {
+  return invoice?.parent?.subscription_details?.metadata
+      || invoice?.subscription_details?.metadata
+      || null;
+}
+
 async function recordCouponRedemption(invoice) {
   const discounts = invoice?.total_discount_amounts || [];
   if (!discounts.length) return;
 
-  const subId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+  const subId = subscriptionIdOf(invoice);
   if (!subId) return;
 
   const [tenant] = await query(
@@ -325,8 +348,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'invoice.payment_failed':
         /* Don't suspend on the first failure — Stripe retries on its dunning
            schedule and the subscription status change will arrive separately. */
-        if (obj.subscription_details?.metadata?.tenant_id || obj.metadata?.tenant_id) {
-          const tid = obj.subscription_details?.metadata?.tenant_id || obj.metadata?.tenant_id;
+        // Same two shapes as above — see subscriptionMetadataOf().
+        if (subscriptionMetadataOf(obj)?.tenant_id || obj.metadata?.tenant_id) {
+          const tid = subscriptionMetadataOf(obj)?.tenant_id || obj.metadata?.tenant_id;
           console.warn(`[stripe] payment failed for tenant ${tid}, invoice ${obj.id}`);
           outcome = { tenantId: tid, note: 'payment failed (awaiting dunning outcome)' };
         }
