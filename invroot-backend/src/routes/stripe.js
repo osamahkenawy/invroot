@@ -188,17 +188,55 @@ async function applySubscription(sub) {
     return { tenantId, note: `unmapped price ${priceId}` };
   }
 
-  // Stripe's own lifecycle decides whether the workspace stays usable.
-  const usable = ['active', 'trialing'].includes(sub.status);
-  /* This is the ONE place a paid plan is granted — signup records the customer's
-     choice as tenants.pending_plan and grants nothing. Clearing it here is what
-     closes the loop: the intent has now been fulfilled, so the app must stop
-     prompting for a checkout the customer has already completed. */
-  await execute(
-    'UPDATE tenants SET plan = ?, subscription_id = ?, status = ?, pending_plan = NULL WHERE id = ?',
-    [plan, sub.id, usable ? (sub.status === 'trialing' ? 'trialing' : 'active') : 'suspended', tenantId]
+  /* Stripe's own lifecycle decides whether this subscription is being paid for.
+     `incomplete`, `incomplete_expired`, `past_due` and `unpaid` all mean no
+     money has settled. */
+  const paying = ['active', 'trialing'].includes(sub.status);
+
+  /* The plan is granted ONLY while it is being paid for.
+     This line used to write `plan = ?` unconditionally and merely flip the
+     status column to 'suspended' on failure. But entitlements are read from
+     tenants.plan (see limitsFor in middleware/plan-limit.js) and nothing reads
+     status — requireActiveTenant existed but was wired to no route at all. So
+     a declined card produced plan='starter', status='suspended', and a
+     workspace with the full paid allowance for free. A failed payment must
+     leave the tier exactly as it was. */
+  if (paying) {
+    /* The one place a paid plan is granted. Signup records the customer's
+       choice as tenants.pending_plan and grants nothing; clearing it here
+       closes the loop so the app stops prompting for a completed checkout. */
+    await execute(
+      'UPDATE tenants SET plan = ?, subscription_id = ?, status = ?, pending_plan = NULL WHERE id = ?',
+      [plan, sub.id, sub.status === 'trialing' ? 'trialing' : 'active', tenantId]
+    );
+    return { tenantId, note: `granted plan=${plan} status=${sub.status}` };
+  }
+
+  /* Not paying. `plan` and `pending_plan` are deliberately left alone — the
+     customer keeps whatever tier they already had, and the pending intent
+     survives so they can retry checkout.
+
+     Suspension is only for REVOKING something. A tenant already on a paid tier
+     whose renewal fails gets suspended; a trial user whose first card is
+     declined does not, because suspending them would lock them out of a trial
+     they are entitled to over a payment that never succeeded in the first
+     place. Losing access is a punishment for lapsing, not for trying. */
+  const [current] = await query('SELECT plan, status FROM tenants WHERE id = ?', [tenantId]);
+  const wasPaying = Boolean(current?.plan) && current.plan !== config.defaultPlan;
+
+  if (wasPaying) {
+    await execute(
+      "UPDATE tenants SET subscription_id = ?, status = 'suspended' WHERE id = ?",
+      [sub.id, tenantId]
+    );
+  } else {
+    await execute('UPDATE tenants SET subscription_id = ? WHERE id = ?', [sub.id, tenantId]);
+  }
+  console.warn(
+    `[stripe] subscription ${sub.id} is ${sub.status} for tenant ${tenantId} — plan NOT granted` +
+    (wasPaying ? ' (suspended: paid tier lapsed)' : ' (kept on free tier, not suspended)')
   );
-  return { tenantId, note: `plan=${plan} status=${sub.status}` };
+  return { tenantId, note: `not granted (status=${sub.status})` };
 }
 
 

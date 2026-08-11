@@ -97,6 +97,22 @@ export function enforcePlanLimit(resource) {
 
   return async (req, res, next) => {
     try {
+      /* A suspended workspace cannot create anything.
+         `requireActiveTenant` in middleware/tenant.js was written for this and
+         then applied to no route, so a tenant whose payment failed kept full
+         write access. Enforcing it here rather than re-wiring every router
+         puts it on the one path every metered create already goes through, so
+         it cannot be forgotten on a new endpoint. Reading stays allowed: the
+         customer must be able to see and export their own records. */
+      const tenantStatus = req.tenant?.status;
+      if (tenantStatus && !['active', 'trialing'].includes(tenantStatus)) {
+        return res.status(402).json({
+          success: false,
+          code: 'TENANT_SUSPENDED',
+          message: 'Your subscription is not active. Update your billing to continue.',
+        });
+      }
+
       const plan = req.tenant?.plan;
       const limits = limitsFor(plan);
       const limit = limits[def.limitKey];
