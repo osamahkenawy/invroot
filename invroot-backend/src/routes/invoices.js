@@ -253,7 +253,13 @@ router.get('/:id/relations', async (req, res) => {
 
       // Recurring schedule
       inv.recurring_schedule_id
-        ? query('SELECT id, name, frequency, status FROM recurring_invoices WHERE id = ?', [inv.recurring_schedule_id])
+        /* `recurring_invoices` is not a table — the schedules live in
+           `recurring_schedules`, and it has no `name` column either. Both
+           errors were invisible until an invoice actually carried a
+           recurring_schedule_id, at which point opening it 500'd. The UI
+           prints this as "Recurring Schedule — {name}", so the frequency
+           stands in: it is the one field that describes the schedule. */
+        ? query('SELECT id, frequency, status, frequency AS name FROM recurring_schedules WHERE id = ?', [inv.recurring_schedule_id])
         : Promise.resolve([]),
 
       // Payment history

@@ -100,10 +100,15 @@ stage_preflight() {
   if ldconfig -p | grep -q libnss3; then
     c_ok "libnss3 present (Chrome deps look installed)"
   else
+    # Ubuntu 24.04 (noble) renamed several of these for the 64-bit time_t
+    # transition. Apt silently substitutes most t64 names, but libasound2 is a
+    # virtual package with two providers so it refuses to choose — and that one
+    # failure aborts the whole apt run, installing nothing. Name them exactly.
     c_warn "Chrome deps MISSING — PDFs will fail. Run:"
-    echo "  apt-get update && apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 \\"
-    echo "    libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \\"
-    echo "    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 libatspi2.0-0"
+    echo "  apt-get update && apt-get install -y libnss3 libatk1.0-0t64 \\"
+    echo "    libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 \\"
+    echo "    libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \\"
+    echo "    libasound2t64 libatspi2.0-0t64"
   fi
 }
 
