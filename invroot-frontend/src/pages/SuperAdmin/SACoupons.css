@@ -1,0 +1,90 @@
+/* Promotion codes — creation form and list. */
+
+.cp-form-card { margin-bottom: 18px; }
+
+.cp-row {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-bottom: 18px;
+}
+.cp-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 0 0 auto; }
+.cp-grow  { flex: 1 1 220px; }
+.cp-field > span { font-size: 12px; font-weight: 700; color: #46586f; }
+.cp-field input,
+.cp-field select {
+  padding: 9px 11px;
+  border: 1px solid #d8e0ea; border-radius: 9px;
+  font-size: 13.5px; background: #fff; color: #16233a;
+  min-width: 0; width: 100%;
+}
+.cp-field input:focus, .cp-field select:focus { outline: none; border-color: #0D1B2A; }
+.cp-field small { font-size: 11.5px; color: #8b98a9; }
+
+/* Unit sits inside the control so the number and its meaning read as one. */
+.cp-suffix { display: flex; align-items: center; gap: 6px; }
+.cp-suffix input { width: 110px; }
+.cp-suffix em { font-style: normal; font-size: 13px; font-weight: 700; color: #6b7a90; }
+
+/* ── Duration ─────────────────────────────────────────── */
+.cp-block { margin-bottom: 18px; }
+.cp-block-label { display: block; font-size: 12px; font-weight: 700; color: #46586f; margin-bottom: 8px; }
+
+.cp-choices { display: flex; gap: 10px; flex-wrap: wrap; }
+.cp-choice {
+  flex: 1 1 190px; min-width: 0;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 14px; text-align: start;
+  background: #fff; border: 1.5px solid #e2e5ea; border-radius: 11px;
+  cursor: pointer; font: inherit;
+}
+.cp-choice:hover { border-color: #c3ccd8; }
+.cp-choice.on { border-color: #0D1B2A; background: #f7f9fc; }
+.cp-choice strong { font-size: 13.5px; color: #16233a; }
+.cp-choice small  { font-size: 11.5px; color: #7b8798; }
+
+.cp-months { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cp-pill {
+  padding: 7px 13px; border-radius: 20px; cursor: pointer; font: inherit;
+  font-size: 12.5px; background: #f1f4f8; border: 1.5px solid transparent; color: #46586f;
+}
+.cp-pill.on { background: #0D1B2A; color: #fff; }
+.cp-months-input {
+  width: 74px; padding: 7px 10px;
+  border: 1px solid #d8e0ea; border-radius: 9px; font-size: 13px;
+}
+
+.cp-actions { display: flex; justify-content: flex-end; }
+
+/* ── List ─────────────────────────────────────────────── */
+.cp-table { width: 100%; }
+.cp-code {
+  font-family: 'Courier New', monospace; font-weight: 700;
+  font-size: 13.5px; letter-spacing: .5px; color: #16233a;
+}
+.cp-note { font-size: 11.5px; color: #8b98a9; margin-top: 2px; }
+
+.cp-tag {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+}
+.cp-tag.on  { background: #e8f6ee; color: #16a34a; }
+.cp-tag.off { background: #f1f4f8; color: #7b8798; }
+
+.cp-row-actions { display: flex; gap: 12px; justify-content: flex-end; white-space: nowrap; }
+.cp-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: #46586f;
+}
+.cp-link:hover { text-decoration: underline; }
+.cp-link.danger { color: #b42318; }
+
+.cp-empty { padding: 42px 20px; text-align: center; color: #8b98a9; }
+.cp-empty strong { display: block; font-size: 14.5px; color: #46586f; margin-bottom: 5px; }
+.cp-empty p { margin: 0; font-size: 13px; }
+
+.sa-alert { padding: 10px 14px; border-radius: 9px; font-size: 13px; margin-bottom: 14px; }
+.sa-alert-err { background: #fef2f2; color: #b42318; border: 1px solid #fecaca; }
+.sa-alert-ok  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+@media (max-width: 720px) {
+  .cp-field, .cp-grow { flex: 1 1 100%; }
+  .cp-row-actions { justify-content: flex-start; }
+}

@@ -22,6 +22,8 @@ const saApi = {
   get:    (path)         => saApi._req('GET',    `/super-admin${path}`),
   post:   (path, body)   => saApi._req('POST',   `/super-admin${path}`, body),
   put:    (path, body)   => saApi._req('PUT',    `/super-admin${path}`, body),
+  // Coupons expose activation over PATCH; without this the toggle had no verb.
+  patch:  (path, body)   => saApi._req('PATCH',  `/super-admin${path}`, body),
   delete: (path)         => saApi._req('DELETE', `/super-admin${path}`),
 
   /** Login uses the normal auth endpoint */

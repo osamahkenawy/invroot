@@ -45,6 +45,7 @@ import SAInvoices       from './pages/SuperAdmin/SAInvoices.jsx';
 import SAPayments       from './pages/SuperAdmin/SAPayments.jsx';
 import SAUsers          from './pages/SuperAdmin/SAUsers.jsx';
 import SAAnalytics      from './pages/SuperAdmin/SAAnalytics.jsx';
+import SACoupons       from './pages/SuperAdmin/SACoupons.jsx';
 
 function SuperAdminRoute({ children }) {
   const token = localStorage.getItem('sa_token');
@@ -128,6 +129,7 @@ export default function App() {
             <Route path="payments"        element={<SAPayments />} />
             <Route path="users"           element={<SAUsers />} />
             <Route path="analytics"       element={<SAAnalytics />} />
+            <Route path="coupons"         element={<SACoupons />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
