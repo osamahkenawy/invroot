@@ -11,6 +11,8 @@ import { writeFileSync, readFileSync } from 'fs';
 import sharp from 'sharp';
 
 const pass = [], fail = [];
+/* Every message the fake transport receives, shared across the blocks below. */
+const capturedForParity = [];
 const check = (n, ok, d = '') => (ok ? pass : fail).push(`${n}${d ? ` — ${d}` : ''}`);
 
 const html = renderBrandedEmail({
@@ -62,7 +64,9 @@ check('logo plate is dark, so the white wordmark reads on any header',
    subjects. Intercept at the transport so nothing is actually sent. */
 {
   const nodemailer = (await import('nodemailer')).default;
-  const captured = [];
+  // Shared with the URI-parity block below — email.js memoises its transport,
+  // so only the fake installed here ever receives anything.
+  const captured = capturedForParity;
   nodemailer.createTransport = () => ({ verify: async () => true, sendMail: async m => (captured.push(m), { messageId: 'test' }) });
   const { sendInvoiceEmail } = await import('../src/lib/email.js');
 
@@ -78,6 +82,40 @@ check('logo plate is dark, so the white wordmark reads on any header',
     captured[1]?.subject?.includes('تريسيلا'), captured[1]?.subject);
   check('a nameless tenant gets no dangling "from"',
     captured[2]?.subject === 'Invoice #INV/08/2026/1', captured[2]?.subject);
+}
+
+/* ── Every link in the HTML must also be in the plain text ─
+   Namecheap's outbound filter rejects a multipart/alternative message whose
+   two parts disagree about their URIs: "550 ... odd number of URIs ...
+   JFE040009". Invoice and reminder mails carried the payment link in HTML
+   only, so they bounced before reaching the customer — invisibly to the
+   sender, and unpaid to everyone else. A text reader also got an invoice with
+   no way to pay it. */
+/* Reuses `captured` from the block above on purpose. email.js memoises its
+   transporter on first use, so a second block installing its own fake would
+   never receive anything — the messages keep arriving in the first array, and
+   the checks below would silently loop over nothing and "pass". */
+{
+  const E = await import('../src/lib/email.js');
+  const LINK = 'https://invroot.com/pay/tok';
+  const before = capturedForParity.length;
+
+  await E.sendInvoiceEmail({ to: 'x@e.com', clientName: 'C', companyName: 'Co', invoiceNumber: 'I1',
+                             dueDate: 'd', totalAmount: '1', currency: 'AED', portalLink: LINK });
+  await E.sendPaymentReminder({ to: 'x@e.com', clientName: 'C', invoiceNumber: 'I1', amount: '1',
+                                currency: 'AED', dueDate: 'd', portalLink: LINK, daysOverdue: 3 });
+  await E.sendVerificationEmail({ to: 'x@e.com', name: 'N', verifyLink: 'https://invroot.com/v?t=1' });
+  await E.sendPasswordResetEmail({ to: 'x@e.com', name: 'N', resetLink: 'https://invroot.com/r?t=1' });
+
+  const fresh = capturedForParity.slice(before);
+  check('parity fixture actually captured messages', fresh.length === 4, `captured ${fresh.length}/4`);
+
+  const uris = s => [...new Set(String(s || '').match(/https?:\/\/[^\s"'<>)]+/g) || [])];
+  for (const m of fresh) {
+    const missing = uris(m.html).filter(u => !uris(m.text).includes(u));
+    check(`text part carries every HTML link — ${String(m.subject).slice(0, 32)}`,
+      missing.length === 0, missing.join(' ') || 'all present');
+  }
 }
 
 /* nothing else relies on a gradient alone */

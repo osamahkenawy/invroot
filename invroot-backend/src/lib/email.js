@@ -218,9 +218,18 @@ export async function sendInvoiceEmail({ to, clientName, companyName, invoiceNum
   return sendEmail({
     to,
     subject,
+    /* The link belongs in BOTH alternatives.
+       It used to be HTML-only, which cost us twice. A plain-text reader got an
+       invoice with no way to pay it — and Namecheap's outbound filter rejected
+       the message outright (550 JFE040009, "odd number of URIs even though it
+       has a multipart/alternative type") because a URI appeared in one part of
+       the alternative and not the other. Bounced invoices are invisible to the
+       sender and unpaid to everyone else. */
     text: isAr
       ? `مرحباً ${clientName}، فاتورة رقم ${invoiceNumber} بمبلغ ${totalAmount} ${currency} مستحقة بتاريخ ${dueDate}.`
-      : `Hello ${clientName}, invoice #${invoiceNumber} for ${totalAmount} ${currency} is due on ${dueDate}.`,
+        + (portalLink ? `\n\nعرض الفاتورة: ${portalLink}` : '')
+      : `Hello ${clientName}, invoice #${invoiceNumber} for ${totalAmount} ${currency} is due on ${dueDate}.`
+        + (portalLink ? `\n\nView invoice: ${portalLink}` : ''),
     html: renderBrandedEmail({
       heading: isAr ? `فاتورة #${invoiceNumber}` : `Invoice #${invoiceNumber}`,
       intro: isAr ? `فاتورة بمبلغ ${totalAmount} ${currency}` : `Invoice for ${totalAmount} ${currency}`,
@@ -264,9 +273,12 @@ export async function sendPaymentReminder({ to, clientName, invoiceNumber, amoun
   return sendEmail({
     to,
     subject,
+    // Same URI-parity rule as the invoice above — see the note there.
     text: isAr
       ? `مرحباً ${clientName}، الفاتورة رقم ${invoiceNumber} بمبلغ ${amount} ${currency}${overdue ? ` متأخرة بـ ${daysOverdue} يوم.` : ` مستحقة بتاريخ ${dueDate}.`}`
-      : `Hello ${clientName}, invoice #${invoiceNumber} for ${amount} ${currency} is ${overdue ? `${daysOverdue} day(s) overdue.` : `due on ${dueDate}.`}`,
+        + (portalLink ? `\n\nالدفع الآن: ${portalLink}` : '')
+      : `Hello ${clientName}, invoice #${invoiceNumber} for ${amount} ${currency} is ${overdue ? `${daysOverdue} day(s) overdue.` : `due on ${dueDate}.`}`
+        + (portalLink ? `\n\nPay now: ${portalLink}` : ''),
     html: renderBrandedEmail({
       heading: isAr ? (overdue ? 'فاتورة متأخرة' : 'تذكير بالدفع') : (overdue ? 'Payment overdue' : 'Payment reminder'),
       intro: isAr ? `فاتورة رقم ${invoiceNumber}` : `Invoice #${invoiceNumber}`,
