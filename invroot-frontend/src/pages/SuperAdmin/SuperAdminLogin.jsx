@@ -3,7 +3,10 @@ import saApi from '../../lib/saApi.js';
 import './SuperAdminLogin.css';
 
 export default function SuperAdminLogin() {
-  const [email,    setEmail]    = useState('superadmin@invroot.com');
+  /* Not seeded with the platform admin's address. Pre-filling it handed half
+     the credential for the most privileged account on the system to anyone who
+     loaded this page. */
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);

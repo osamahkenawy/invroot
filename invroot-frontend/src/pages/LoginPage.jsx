@@ -31,8 +31,12 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const justVerified = searchParams.get('verified') === '1';
 
-  const [email,    setEmail]    = useState('test@acme.com');
-  const [password, setPassword] = useState('Test1234!');
+  /* Empty, not seeded. These held a development account's address and
+     password, which shipped to production: every visitor to the sign-in page
+     was shown someone's credentials pre-filled, and a returning customer had
+     to clear a stranger's email before typing their own. */
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
