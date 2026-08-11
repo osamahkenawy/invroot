@@ -520,9 +520,18 @@ router.get('/me', (req, res) => {
 /* ── GET /api/super-admin/coupons ───────────────────── */
 router.get('/coupons', async (req, res) => {
   try {
+    /* Aggregated here rather than per-row in the client: the admin list would
+       otherwise need a redemptions request per code just to show a total, and
+       the numbers a reader compares across rows must come from one snapshot. */
     const rows = await query(
       `SELECT c.*,
-              (SELECT COUNT(*) FROM invroot_coupon_redemptions r WHERE r.coupon_id = c.id) AS redemptions
+              (SELECT COUNT(*)       FROM invroot_coupon_redemptions r WHERE r.coupon_id = c.id) AS redemptions,
+              (SELECT COALESCE(SUM(r.discount_amount), 0)
+                 FROM invroot_coupon_redemptions r WHERE r.coupon_id = c.id)                     AS total_discount,
+              (SELECT MAX(r.redeemed_at) FROM invroot_coupon_redemptions r WHERE r.coupon_id = c.id) AS last_redeemed_at,
+              (SELECT r.currency FROM invroot_coupon_redemptions r
+                WHERE r.coupon_id = c.id AND r.currency IS NOT NULL
+                ORDER BY r.redeemed_at DESC LIMIT 1)                                            AS redeemed_currency
          FROM invroot_coupons c
         ORDER BY c.archived_at IS NOT NULL, c.created_at DESC`
     );
