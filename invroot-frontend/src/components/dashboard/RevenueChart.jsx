@@ -19,8 +19,8 @@ export default function RevenueChart({ data = [] }) {
       {
         label: 'Invoiced',
         data: invoiced,
-        borderColor: '#e85d04',
-        backgroundColor: 'rgba(232,93,4,0.08)',
+        borderColor: '#8A6D1F',
+        backgroundColor: 'rgba(138,109,31,0.08)',
         fill: true,
         tension: 0.4,
         pointRadius: 3,

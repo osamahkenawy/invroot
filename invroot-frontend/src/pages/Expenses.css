@@ -20,26 +20,49 @@
 
 /* Toolbar */
 .exp-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.exp-tabs { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+/* Scrolls sideways rather than pushing the page wider than the phone — the
+   same fix the invoice/quote filter pills carry. `min-width: 0` is what makes
+   `overflow-x` bite: without it the row stretches to fit every tab. */
+.exp-tabs {
+  display: flex; gap: 4px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 10px; padding: 4px;
+  max-width: 100%; min-width: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.exp-tabs::-webkit-scrollbar { display: none; }
+.exp-tabs > * { flex: 0 0 auto; }
 .exp-tab {
   padding: 7px 16px; border-radius: 7px; border: none; background: transparent;
   font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all .2s;
 }
 .exp-tab:hover { background: var(--hover-bg); }
 .exp-tab.active { background: var(--primary); color: #fff; }
-.exp-toolbar-right { display: flex; gap: 10px; align-items: center; }
+/* `min-width: 0` so the row may shrink below its content: the search field
+   below declares a fixed width, and a flex item's default `min-width: auto`
+   would otherwise hold this row at ~371px and push the page past the phone. */
+.exp-toolbar-right { display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
 .exp-search-box {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 12px;
+  min-width: 0; flex: 1 1 auto;
 }
-.exp-search-box input { border: none; outline: none; background: transparent; font-size: 13px; color: var(--text-primary); width: 200px; }
+.exp-search-box svg { flex-shrink: 0; }
+/* 200px is the desktop size, not a floor — the field gives way before the
+   add button does, so the primary action is never the thing that gets cut. */
+.exp-search-box input {
+  border: none; outline: none; background: transparent;
+  font-size: 13px; color: var(--text-primary);
+  width: 200px; min-width: 0; flex: 1 1 auto;
+}
 .exp-add-btn {
   display: flex; align-items: center; gap: 6px;
   background: var(--secondary); color: #fff; border: none; border-radius: 8px;
   padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s;
 }
 .exp-add-btn svg { width: 16px; height: 16px; }
+/* Never shrinks or wraps — it is the only way to add an expense. */
+.exp-add-btn { flex: 0 0 auto; white-space: nowrap; }
 .exp-add-btn:hover { background: var(--secondary-dark); }
 
 /* Table */

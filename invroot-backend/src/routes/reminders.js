@@ -3,6 +3,7 @@ import { query, execute } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
 import { requireOwner } from '../middleware/role-gate.js';
+import { failure } from '../lib/api-error.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -12,7 +13,7 @@ router.get('/rules', async (req, res) => {
   try {
     const rows = await query('SELECT * FROM reminder_rules WHERE tenant_id = ? ORDER BY days_offset', [req.tenantId]);
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── POST /api/reminders/rules ──────────────────────── */
@@ -25,7 +26,7 @@ router.post('/rules', requireOwner, async (req, res) => {
       [req.tenantId, name, days_offset, channel, template_id || null, is_active ? 1 : 1]
     );
     res.status(201).json({ success: true, id: result.insertId });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── PUT /api/reminders/rules/:id ───────────────────── */
@@ -35,7 +36,7 @@ router.put('/rules/:id', requireOwner, async (req, res) => {
     await execute('UPDATE reminder_rules SET name=?, days_offset=?, channel=?, template_id=?, is_active=? WHERE id=? AND tenant_id=?',
       [name, days_offset, channel, template_id, is_active ? 1 : 0, req.params.id, req.tenantId]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── GET /api/reminders/templates ───────────────────── */
@@ -43,7 +44,7 @@ router.get('/templates', async (req, res) => {
   try {
     const rows = await query('SELECT * FROM notification_templates WHERE tenant_id = ?', [req.tenantId]);
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── POST /api/reminders/templates ──────────────────── */
@@ -55,7 +56,7 @@ router.post('/templates', requireOwner, async (req, res) => {
       [req.tenantId, name, subject_en, body_en, subject_ar, body_ar, type || 'reminder']
     );
     res.status(201).json({ success: true, id: result.insertId });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── PUT /api/reminders/templates/:id ───────────────── */
@@ -67,7 +68,7 @@ router.put('/templates/:id', requireOwner, async (req, res) => {
       [name, subject_en, body_en, subject_ar, body_ar, type, req.params.id, req.tenantId]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── DELETE /api/reminders/rules/:id ────────────────── */
@@ -75,7 +76,7 @@ router.delete('/rules/:id', requireOwner, async (req, res) => {
   try {
     await execute('DELETE FROM reminder_rules WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 /* ── GET /api/reminders/log ─────────────────────────── */
@@ -90,7 +91,7 @@ router.get('/log', async (req, res) => {
       [req.tenantId]
     );
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reminders' }); }
 });
 
 export default router;

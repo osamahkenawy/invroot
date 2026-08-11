@@ -1,28 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Coins, Plus, Search, EditPencil, Trash, Check,
   FilterList, MoreHoriz, Clock, WarningTriangle, ArrowUp
 } from 'iconoir-react';
 import api from '../lib/api';
+import { useToastContext } from '../context/ToastContext.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import './Expenses.css';
 
 const CATEGORIES = ['Rent','Utilities','Salaries','Marketing','Travel','Supplies','Software','Maintenance','Other'];
 const STATUS_TABS = ['all','unpaid','paid','overdue','draft'];
 
+/* Number(v), not v: MySQL returns SUM()/DECIMAL columns as STRINGS, and a
+   string reaching a numeric formatter is the same class of bug that crashed
+   this page with "toFixed is not a function". */
 const fmtAmt = (v, cur = 'SAR') =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, minimumFractionDigits: 2 }).format(v || 0);
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, minimumFractionDigits: 2 })
+    .format(Number(v) || 0);
 
-const statusBadge = (s) => {
-  const map = { paid: ['badge-paid','Paid'], unpaid: ['badge-unpaid','Unpaid'], overdue: ['badge-overdue','Overdue'], draft: ['badge-draft','Draft'] };
-  const [cls, label] = map[s] || ['badge-draft', s];
-  return <span className={`exp-badge ${cls}`}>{label}</span>;
+// Module-level helper: hooks are unavailable, so the caller passes `t`.
+const statusBadge = (s, t) => {
+  const cls = { paid: 'badge-paid', unpaid: 'badge-unpaid', overdue: 'badge-overdue', draft: 'badge-draft' }[s] || 'badge-draft';
+  return <span className={`exp-badge ${cls}`}>{t(`expenses.${s}`, { defaultValue: s })}</span>;
 };
 
 const emptyForm = { vendor_name: '', reference: '', category: '', amount: '', currency: 'SAR', expense_date: '', due_date: '', status: 'unpaid', payment_method: '', notes: '' };
 
 export default function Expenses() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [expenses, setExpenses]   = useState([]);
   const [summary, setSummary]     = useState({});
   const [loading, setLoading]     = useState(true);
@@ -46,23 +54,29 @@ export default function Expenses() {
         api.get(`/expenses?${params}`),
         api.get('/expenses/summary'),
       ]);
-      setExpenses(res.data.data || []);
-      setTotal(res.data.total || 0);
-      setSummary(sumRes.data.data || {});
+      /* The api client already returns the parsed body — the extra `.data`
+         hop is an axios-ism that resolved to undefined, so this list rendered
+         empty however many expenses existed. */
+      setExpenses(res.data || []);
+      setTotal(res.total || 0);
+      setSummary(sumRes.data || {});
     } finally { setLoading(false); }
   }, [page, search, activeTab]);
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => { setEditItem(null); setForm(emptyForm); setShowModal(true); };
+  const openCreate = () => { setEditItem(null); setForm({ ...emptyForm, currency: tenant?.currency || 'SAR' }); setShowModal(true); };
   const openEdit   = (e) => { setEditItem(e); setForm({ ...e }); setShowModal(true); };
 
   const saveExpense = async () => {
     if (!form.amount) return;
     setSaving(true);
     try {
-      if (editItem) await api.put(`/expenses/${editItem.id}`, form);
-      else          await api.post('/expenses', form);
+      const res = editItem
+        ? await api.put(`/expenses/${editItem.id}`, form)
+        : await api.post('/expenses', form);
+      if (res?.success === false) { showToast(res.message || t('common.save_failed'), 'error'); return; }
+      showToast(t(editItem ? 'common.updated_success' : 'common.created_success'));
       setShowModal(false);
       load();
     } finally { setSaving(false); }
@@ -70,12 +84,16 @@ export default function Expenses() {
 
   const deleteExpense = async (id) => {
     if (!window.confirm('Delete this expense?')) return;
-    await api.delete(`/expenses/${id}`);
+    const res = await api.delete(`/expenses/${id}`);
+    if (res?.success === false) return showToast(res.message || t('common.delete_failed'), 'error');
+    showToast(t('common.deleted_success'));
     load();
   };
 
   const markPaid = async (id) => {
-    await api.post(`/expenses/${id}/mark-paid`, { payment_method: 'cash' });
+    const res = await api.post(`/expenses/${id}/mark-paid`, { payment_method: 'cash' });
+    if (res?.success === false) return showToast(res.message || t('common.action_failed'), 'error');
+    showToast(t('common.updated_success'));
     load();
   };
 
@@ -85,19 +103,19 @@ export default function Expenses() {
       <div className="exp-stats">
         <div className="exp-stat-card">
           <div className="exp-stat-icon purple"><Coins /></div>
-          <div><div className="exp-stat-label">Total Expenses</div><div className="exp-stat-value">{fmtAmt(summary.total)}</div></div>
+          <div><div className="exp-stat-label">{t('expenses.total')}</div><div className="exp-stat-value">{fmtAmt(summary.total, tenant?.currency)}</div></div>
         </div>
         <div className="exp-stat-card">
           <div className="exp-stat-icon orange"><Clock /></div>
-          <div><div className="exp-stat-label">Unpaid</div><div className="exp-stat-value">{fmtAmt(summary.unpaid)}</div></div>
+          <div><div className="exp-stat-label">{t('expenses.unpaid')}</div><div className="exp-stat-value">{fmtAmt(summary.unpaid, tenant?.currency)}</div></div>
         </div>
         <div className="exp-stat-card">
           <div className="exp-stat-icon green"><Check /></div>
-          <div><div className="exp-stat-label">Paid</div><div className="exp-stat-value">{fmtAmt(summary.paid)}</div></div>
+          <div><div className="exp-stat-label">{t('expenses.paid')}</div><div className="exp-stat-value">{fmtAmt(summary.paid, tenant?.currency)}</div></div>
         </div>
         <div className="exp-stat-card">
           <div className="exp-stat-icon red"><WarningTriangle /></div>
-          <div><div className="exp-stat-label">Overdue</div><div className="exp-stat-value">{fmtAmt(summary.overdue)}</div></div>
+          <div><div className="exp-stat-label">{t('expenses.overdue')}</div><div className="exp-stat-value">{fmtAmt(summary.overdue, tenant?.currency)}</div></div>
         </div>
       </div>
 
@@ -106,16 +124,16 @@ export default function Expenses() {
         <div className="exp-tabs">
           {STATUS_TABS.map(tab => (
             <button key={tab} className={`exp-tab${activeTab === tab ? ' active' : ''}`} onClick={() => { setActiveTab(tab); setPage(1); }}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {t(`expenses.${tab}`, { defaultValue: tab })}
             </button>
           ))}
         </div>
         <div className="exp-toolbar-right">
           <div className="exp-search-box">
             <Search width={15} height={15} />
-            <input placeholder="Search vendor, ref…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+            <input placeholder={t('expenses.search_placeholder')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
-          <button className="exp-add-btn" onClick={openCreate}><Plus /> New Expense</button>
+          <button className="exp-add-btn" onClick={openCreate}><Plus /> {t('expenses.new')}</button>
         </div>
       </div>
 
@@ -124,13 +142,13 @@ export default function Expenses() {
         {loading ? (
           <div className="exp-loading"><div className="exp-spinner" /></div>
         ) : expenses.length === 0 ? (
-          <div className="exp-empty"><Coins width={48} height={48} /><p>No expenses found</p><button onClick={openCreate}>Add your first expense</button></div>
+          <div className="exp-empty"><Coins width={48} height={48} /><p>{t('expenses.none_found')}</p><button onClick={openCreate}>{t('expenses.add_first')}</button></div>
         ) : (
           <table className="exp-table">
             <thead>
               <tr>
-                <th>Vendor</th><th>Category</th><th>Date</th><th>Due Date</th>
-                <th>Amount</th><th>Status</th><th>Actions</th>
+                <th>{t('expenses.vendor')}</th><th>{t('expenses.category')}</th><th>{t('common.date')}</th><th>{t('expenses.due_date')}</th>
+                <th>{t('common.amount')}</th><th>{t('common.status')}</th><th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -144,14 +162,14 @@ export default function Expenses() {
                   <td className="exp-date">{exp.expense_date ? new Date(exp.expense_date).toLocaleDateString() : '—'}</td>
                   <td className="exp-date">{exp.due_date ? new Date(exp.due_date).toLocaleDateString() : '—'}</td>
                   <td className="exp-amount">{fmtAmt(exp.amount, exp.currency)}</td>
-                  <td>{statusBadge(exp.status)}</td>
+                  <td>{statusBadge(exp.status, t)}</td>
                   <td>
                     <div className="exp-actions">
                       {exp.status !== 'paid' && (
-                        <button className="exp-act-btn green" title="Mark Paid" onClick={() => markPaid(exp.id)}><Check /></button>
+                        <button className="exp-act-btn green" title={t('expenses.mark_paid')} onClick={() => markPaid(exp.id)}><Check /></button>
                       )}
-                      <button className="exp-act-btn" title="Edit" onClick={() => openEdit(exp)}><EditPencil /></button>
-                      <button className="exp-act-btn red" title="Delete" onClick={() => deleteExpense(exp.id)}><Trash /></button>
+                      <button className="exp-act-btn" title={t('common.edit')} onClick={() => openEdit(exp)}><EditPencil /></button>
+                      <button className="exp-act-btn red" title={t('common.delete')} onClick={() => deleteExpense(exp.id)}><Trash /></button>
                     </div>
                   </td>
                 </tr>
@@ -175,68 +193,68 @@ export default function Expenses() {
         <div className="exp-modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="exp-modal">
             <div className="exp-modal-header">
-              <h2>{editItem ? 'Edit Expense' : 'New Expense'}</h2>
+              <h2>{t(editItem ? 'expenses.edit' : 'expenses.new')}</h2>
               <button className="exp-modal-close" onClick={() => setShowModal(false)}>×</button>
             </div>
             <div className="exp-modal-body">
               <div className="exp-form-grid">
                 <div className="exp-form-group span2">
-                  <label>Vendor Name</label>
-                  <input value={form.vendor_name || ''} onChange={e => setForm(f => ({...f, vendor_name: e.target.value}))} placeholder="Vendor or supplier name" />
+                  <label>{t('expenses.vendor_name')}</label>
+                  <input value={form.vendor_name || ''} onChange={e => setForm(f => ({...f, vendor_name: e.target.value}))} placeholder={t('expenses.vendor_placeholder')} />
                 </div>
                 <div className="exp-form-group">
                   <label>Reference #</label>
-                  <input value={form.reference || ''} onChange={e => setForm(f => ({...f, reference: e.target.value}))} placeholder="Invoice / bill ref" />
+                  <input value={form.reference || ''} onChange={e => setForm(f => ({...f, reference: e.target.value}))} placeholder={t('expenses.reference')} />
                 </div>
                 <div className="exp-form-group">
-                  <label>Category</label>
+                  <label>{t('expenses.category')}</label>
                   <select value={form.category || ''} onChange={e => setForm(f => ({...f, category: e.target.value}))}>
-                    <option value="">Select category</option>
+                    <option value="">{t('expenses.select_category')}</option>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="exp-form-group">
-                  <label>Amount *</label>
+                  <label>{t('common.amount')} *</label>
                   <input type="number" min="0" step="0.01" value={form.amount || ''} onChange={e => setForm(f => ({...f, amount: e.target.value}))} placeholder="0.00" />
                 </div>
                 <div className="exp-form-group">
-                  <label>Currency</label>
+                  <label>{t('common.currency')}</label>
                   <select value={form.currency || 'SAR'} onChange={e => setForm(f => ({...f, currency: e.target.value}))}>
                     {['SAR','USD','EUR','GBP','AED'].map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="exp-form-group">
-                  <label>Expense Date</label>
+                  <label>{t('expenses.expense_date')}</label>
                   <input type="date" value={form.expense_date || ''} onChange={e => setForm(f => ({...f, expense_date: e.target.value}))} />
                 </div>
                 <div className="exp-form-group">
-                  <label>Due Date</label>
+                  <label>{t('expenses.due_date')}</label>
                   <input type="date" value={form.due_date || ''} onChange={e => setForm(f => ({...f, due_date: e.target.value}))} />
                 </div>
                 <div className="exp-form-group">
-                  <label>Status</label>
+                  <label>{t('common.status')}</label>
                   <select value={form.status || 'unpaid'} onChange={e => setForm(f => ({...f, status: e.target.value}))}>
-                    <option value="draft">Draft</option>
-                    <option value="unpaid">Unpaid</option>
-                    <option value="paid">Paid</option>
-                    <option value="overdue">Overdue</option>
+                    <option value="draft">{t('expenses.draft')}</option>
+                    <option value="unpaid">{t('expenses.unpaid')}</option>
+                    <option value="paid">{t('expenses.paid')}</option>
+                    <option value="overdue">{t('expenses.overdue')}</option>
                   </select>
                 </div>
                 <div className="exp-form-group">
-                  <label>Payment Method</label>
+                  <label>{t('expenses.payment_method')}</label>
                   <select value={form.payment_method || ''} onChange={e => setForm(f => ({...f, payment_method: e.target.value}))}>
                     <option value="">—</option>
-                    {['cash','bank_transfer','credit_card','cheque','online'].map(m => <option key={m} value={m}>{m.replace('_',' ')}</option>)}
+                    {['cash','bank_transfer','credit_card','cheque','online'].map(m => <option key={m} value={m}>{t(`expenses.m_${m}`, { defaultValue: m.replace('_',' ') })}</option>)}
                   </select>
                 </div>
                 <div className="exp-form-group span2">
-                  <label>Notes</label>
-                  <textarea rows={3} value={form.notes || ''} onChange={e => setForm(f => ({...f, notes: e.target.value}))} placeholder="Optional notes…" />
+                  <label>{t('common.notes')}</label>
+                  <textarea rows={3} value={form.notes || ''} onChange={e => setForm(f => ({...f, notes: e.target.value}))} placeholder={t('expenses.notes_placeholder')} />
                 </div>
               </div>
             </div>
             <div className="exp-modal-footer">
-              <button className="exp-btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="exp-btn-cancel" onClick={() => setShowModal(false)}>{t('common.cancel')}</button>
               <button className="exp-btn-save" onClick={saveExpense} disabled={saving || !form.amount}>
                 {saving ? 'Saving…' : editItem ? 'Save Changes' : 'Add Expense'}
               </button>

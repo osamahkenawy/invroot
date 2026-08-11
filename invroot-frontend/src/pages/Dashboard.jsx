@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import api from '../lib/api.js';
 import KpiCard from '../components/dashboard/KpiCard.jsx';
 import RevenueChart from '../components/dashboard/RevenueChart.jsx';
+import DashboardInsights from '../components/dashboard/DashboardInsights.jsx';
+import OnboardingChecklist from '../components/dashboard/OnboardingChecklist.jsx';
+import UnbilledWork from '../components/dashboard/UnbilledWork.jsx';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { DollarCircle, Page, WarningTriangle, Check, ArrowUp, ArrowDown } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
@@ -21,6 +25,7 @@ const STATUS_COLOR = {
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod]   = useState('30');
@@ -40,7 +45,7 @@ export default function Dashboard() {
   if (loading) return <Loader fullPage />;
 
   const kpis = data?.kpis || {};
-  const cur  = data?.currency || 'SAR';
+  const cur  = data?.currency || tenant?.currency || 'SAR';
   const fmt  = (v) => fmtCurrency(v, cur);
 
   return (
@@ -54,13 +59,16 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Getting started — hides itself once complete or dismissed */}
+      <OnboardingChecklist />
+
       {/* KPI Cards */}
       <div className="kpi-grid">
         <KpiCard
           label={t('dashboard.total_revenue')}
           value={fmt(kpis.total_revenue)}
           icon={DollarCircle}
-          color="#d63a17"
+          color="#8A6D1F"
         />
         <KpiCard
           label={t('dashboard.collected')}
@@ -98,19 +106,21 @@ export default function Dashboard() {
       )}
 
       {/* ── Receivables / Payables / Cashflow ───────── */}
+      <UnbilledWork />
+
       <div className="dash-fin-row">
         {/* Receivables */}
         <div className="dash-fin-card">
           <div className="dash-fin-header">
             <div className="dash-fin-icon rcv"><ArrowUp /></div>
             <div>
-              <div className="dash-fin-label">TOTAL RECEIVABLES</div>
+              <div className="dash-fin-label">{t('dashboard.total_receivables')}</div>
               <div className="dash-fin-total">{fmt(data?.receivables?.total || 0)}</div>
             </div>
           </div>
           <div className="dash-fin-bars">
             <div className="dash-fin-bar-row">
-              <span className="dash-fin-bar-label">Current</span>
+              <span className="dash-fin-bar-label">{t('dashboard.current')}</span>
               <div className="dash-fin-bar-track">
                 <div className="dash-fin-bar-fill blue" style={{
                   width: `${data?.receivables?.total > 0
@@ -121,7 +131,7 @@ export default function Dashboard() {
               <span className="dash-fin-bar-val">{fmt(data?.receivables?.current || 0)}</span>
             </div>
             <div className="dash-fin-bar-row">
-              <span className="dash-fin-bar-label">Overdue</span>
+              <span className="dash-fin-bar-label">{t('dashboard.overdue')}</span>
               <div className="dash-fin-bar-track">
                 <div className="dash-fin-bar-fill red" style={{
                   width: `${data?.receivables?.total > 0
@@ -139,13 +149,13 @@ export default function Dashboard() {
           <div className="dash-fin-header">
             <div className="dash-fin-icon pay"><ArrowDown /></div>
             <div>
-              <div className="dash-fin-label">TOTAL PAYABLES</div>
+              <div className="dash-fin-label">{t('dashboard.total_payables')}</div>
               <div className="dash-fin-total">{fmt(data?.payables?.total || 0)}</div>
             </div>
           </div>
           <div className="dash-fin-bars">
             <div className="dash-fin-bar-row">
-              <span className="dash-fin-bar-label">Current</span>
+              <span className="dash-fin-bar-label">{t('dashboard.current')}</span>
               <div className="dash-fin-bar-track">
                 <div className="dash-fin-bar-fill orange" style={{
                   width: `${data?.payables?.total > 0
@@ -156,7 +166,7 @@ export default function Dashboard() {
               <span className="dash-fin-bar-val">{fmt(data?.payables?.current || 0)}</span>
             </div>
             <div className="dash-fin-bar-row">
-              <span className="dash-fin-bar-label">Overdue</span>
+              <span className="dash-fin-bar-label">{t('dashboard.overdue')}</span>
               <div className="dash-fin-bar-track">
                 <div className="dash-fin-bar-fill red" style={{
                   width: `${data?.payables?.total > 0
@@ -171,23 +181,23 @@ export default function Dashboard() {
 
         {/* Cashflow Summary */}
         <div className="dash-fin-card cashflow-card">
-          <div className="dash-fin-label" style={{ marginBottom:14 }}>CASH FLOW SUMMARY</div>
+          <div className="dash-fin-label" style={{ marginBottom:14 }}>{t('dashboard.cash_flow_summary')}</div>
           <div className="dash-cf-rows">
             <div className="dash-cf-row">
-              <span className="dash-cf-lbl">Opening Balance</span>
+              <span className="dash-cf-lbl">{t('dashboard.opening_balance')}</span>
               <span className="dash-cf-val">{fmt(data?.cashflow_summary?.opening || 0)}</span>
             </div>
             <div className="dash-cf-row incoming">
-              <span className="dash-cf-lbl"><ArrowUp style={{width:13,height:13}} /> Incoming</span>
+              <span className="dash-cf-lbl"><ArrowUp style={{width:13,height:13}} /> {t('dashboard.incoming')}</span>
               <span className="dash-cf-val green">+{fmt(data?.cashflow_summary?.incoming || 0)}</span>
             </div>
             <div className="dash-cf-row outgoing">
-              <span className="dash-cf-lbl"><ArrowDown style={{width:13,height:13}} /> Outgoing</span>
+              <span className="dash-cf-lbl"><ArrowDown style={{width:13,height:13}} /> {t('dashboard.outgoing')}</span>
               <span className="dash-cf-val red">−{fmt(data?.cashflow_summary?.outgoing || 0)}</span>
             </div>
             <div className="dash-cf-divider" />
             <div className="dash-cf-row closing">
-              <span className="dash-cf-lbl" style={{ fontWeight:700 }}>Closing Balance</span>
+              <span className="dash-cf-lbl" style={{ fontWeight:700 }}>{t('dashboard.closing_balance')}</span>
               <span className="dash-cf-val" style={{ fontWeight:800, fontSize:16 }}>{fmt(data?.cashflow_summary?.closing || 0)}</span>
             </div>
           </div>
@@ -197,11 +207,14 @@ export default function Dashboard() {
       {/* Chart */}
       <RevenueChart data={data?.cashflow || []} />
 
+      {/* Top clients + AR aging */}
+      <DashboardInsights />
+
       {/* Recent invoices */}
       <div className="card" style={{ marginTop: 24 }}>
         <div className="card-header">
           <h3>{t('dashboard.recent_invoices')}</h3>
-          <Link to="/invoices" className="link-primary">View all →</Link>
+          <Link to="/invoices" className="link-primary">{t('common.view_all')} →</Link>
         </div>
         <div className="table-wrapper">
           <table className="data-table">
@@ -229,7 +242,7 @@ export default function Dashboard() {
                     <td>
                       <span className="dash-status-badge" style={{ background: s.bg, color: s.color }}>
                         <span className="dash-status-dot" style={{ background: s.color }} />
-                        {inv.status}
+                        {t(`invoices.status.${inv.status}`, { defaultValue: inv.status })}
                       </span>
                     </td>
                   </tr>

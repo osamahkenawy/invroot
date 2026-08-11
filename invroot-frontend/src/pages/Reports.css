@@ -100,7 +100,7 @@
 .sales-total-bar { font-size: 13px; color: var(--text-muted); background: #fafbfc; border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; }
 .sales-total-bar strong { color: var(--primary); font-size: 15px; }
 .sales-bar-track { flex: 1; height: 8px; background: #f1f4f8; border-radius: 4px; overflow: hidden; min-width: 80px; }
-.sales-bar-fill { height: 100%; background: linear-gradient(90deg, var(--secondary), #e66b2e); border-radius: 4px; }
+.sales-bar-fill { height: 100%; background: linear-gradient(90deg, var(--secondary), #A9862B); border-radius: 4px; }
 
 .report-date-input {
   padding: 7px 10px;

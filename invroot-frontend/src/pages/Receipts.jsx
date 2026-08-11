@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { Search, Download, PrintingPage } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
 
 export default function Receipts() {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
   const [receipts, setReceipts] = useState([]);
   const [total,    setTotal]    = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -42,7 +44,7 @@ export default function Receipts() {
         </div>
         <div className="receipts-total">
           <span>{t('receipts.total_received')}</span>
-          <strong>{fmtCurrency(totalAmount)}</strong>
+          <strong>{fmtCurrency(totalAmount, tenant?.currency)}</strong>
         </div>
       </div>
 

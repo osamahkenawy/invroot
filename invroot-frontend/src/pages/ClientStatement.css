@@ -1,0 +1,112 @@
+.stmt-page { max-width: 980px; margin: 0 auto; }
+
+/* ── Toolbar ── */
+.stmt-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.stmt-back { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.stmt-back svg { width: 15px; height: 15px; }
+.stmt-page.rtl .stmt-back svg { transform: scaleX(-1); }
+.stmt-toolbar-right { display: flex; align-items: center; gap: 10px; margin-inline-start: auto; flex-wrap: wrap; }
+.stmt-date {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-muted);
+}
+.stmt-date input {
+  padding: 6px 9px; font-size: 13px;
+  border: 1px solid var(--border, #e2e8f0); border-radius: 8px; background: var(--bg-card, #fff);
+}
+
+/* ── Printable sheet ── */
+.stmt-sheet {
+  background: #fff;
+  border: 1px solid var(--border, #e7ebf3);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(13,27,42,.05));
+  padding: 36px 40px 32px;
+}
+
+.stmt-head { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.stmt-logo { max-height: 48px; max-width: 190px; object-fit: contain; margin-bottom: 8px; }
+.stmt-company { font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+.stmt-muted { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+.stmt-title-block { text-align: end; }
+.stmt-title-block h1 {
+  margin: 0 0 4px; font-size: 26px; font-weight: 800; letter-spacing: -.02em;
+  color: var(--primary, #0D1B2A);
+}
+
+.stmt-billto { margin-bottom: 24px; }
+.stmt-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--text-muted); margin-bottom: 4px;
+}
+.stmt-client-name { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+
+/* ── Summary strip ── */
+.stmt-summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px; background: var(--border-soft, #eef1f6);
+  border: 1px solid var(--border-soft, #eef1f6); border-radius: 12px;
+  overflow: hidden; margin-bottom: 24px;
+}
+.stmt-sum-item {
+  background: var(--bg-soft, #f8fafc);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+}
+.stmt-sum-item span   { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+.stmt-sum-item strong { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.stmt-sum-item strong.green { color: #16a34a; }
+.stmt-sum-item.total { background: var(--primary, #0D1B2A); }
+.stmt-sum-item.total span   { color: rgba(255,255,255,.65); }
+.stmt-sum-item.total strong { color: #fff; font-size: 18px; }
+.stmt-sum-item.total.clear strong { color: #6ee7a8; }
+
+/* ── Ledger table ── */
+.stmt-table { width: 100%; border-collapse: collapse; }
+.stmt-table th {
+  text-align: start; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--text-muted); padding: 10px 10px; border-bottom: 2px solid var(--border, #e7ebf3);
+  white-space: nowrap;
+}
+.stmt-table td {
+  padding: 11px 10px; font-size: 13.5px; color: var(--text-primary);
+  border-bottom: 1px solid var(--border-soft, #f1f4f8); vertical-align: top;
+}
+.stmt-table .r { text-align: end; white-space: nowrap; }
+.stmt-table .bold { font-weight: 700; }
+.stmt-table .green { color: #16a34a; }
+.stmt-date-cell { white-space: nowrap; color: var(--text-secondary, #64708a); }
+.stmt-opening td { background: var(--bg-soft, #f8fafc); color: var(--text-muted); }
+.stmt-empty { text-align: center; padding: 34px 0 !important; color: var(--text-muted); }
+
+.stmt-table tfoot td {
+  border-top: 2px solid var(--border, #e7ebf3); border-bottom: none;
+  font-weight: 700; font-size: 14px; padding-top: 14px;
+}
+
+.stmt-tag {
+  display: inline-block; margin-inline-end: 8px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  padding: 2px 7px; border-radius: 5px;
+  background: #eef2f7; color: #64748b;
+}
+.stmt-tag.invoice     { background: #eff6ff; color: #2563eb; }
+.stmt-tag.payment     { background: #f0fdf4; color: #16a34a; }
+.stmt-tag.credit_note { background: #fff7ed; color: #d97706; }
+
+.stmt-footnote {
+  margin-top: 26px; padding-top: 16px;
+  border-top: 1px solid var(--border-soft, #f1f4f8);
+  font-size: 11.5px; color: var(--text-muted); text-align: center; line-height: 1.6;
+}
+
+/* ── Print ── */
+@media print {
+  .no-print, .sidebar, .topbar, .layout-sidebar, .layout-topbar { display: none !important; }
+  .stmt-page  { max-width: none; margin: 0; }
+  .stmt-sheet { border: none; box-shadow: none; border-radius: 0; padding: 0; }
+  .stmt-sum-item.total { background: #0D1B2A !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .stmt-table { font-size: 11px; }
+}

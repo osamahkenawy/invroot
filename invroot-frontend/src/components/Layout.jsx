@@ -1,7 +1,9 @@
 import { useState, useContext, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import UserAvatar from './UserAvatar.jsx';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext.jsx';
+import NotificationBell from './NotificationBell.jsx';
 import {
   HomeSimple, User, Page, Dollar, DollarCircle, StatsUpSquare,
   Settings, Network, Bell, Menu, LogOut, RefreshDouble,
@@ -109,12 +111,17 @@ export default function Layout() {
       <aside className={`sidebar ${mobilOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="brand">
-            {tenant?.logo_url
-              ? <img src={`/uploads/logos/${tenant.logo_url}`} alt="logo" className="brand-logo" />
-              : <span className="brand-name">INVROOT</span>
-            }
+            {/* Always the INVROOT mark — the sidebar is product chrome, not a
+                white-label surface. A tenant's own logo appears on their
+                invoices/quotes and PDFs, not here.
+                Collapsed rail is only 76px wide, so show the icon alone. */}
+            <img
+              src={collapsed ? '/logos/invroot-icon-white-2000-2000.png' : '/logos/invroot-sidebar-logo-600-200-white-logo.png'}
+              alt="INVROOT"
+              className={collapsed ? 'brand-icon' : 'brand-logo'}
+            />
           </div>
-          <button className="collapse-btn" onClick={() => setCollapsed(c => !c)} aria-label="Toggle sidebar">
+          <button className="collapse-btn" onClick={() => setCollapsed(c => !c)} aria-label={t('common.toggle_sidebar')}>
             <Menu />
           </button>
         </div>
@@ -164,7 +171,7 @@ export default function Layout() {
           </div>
 
           <div className="topbar-right">
-            <div className="lang-switch" role="group" aria-label="Language">
+            <div className="lang-switch" role="group" aria-label={t('common.language')}>
               <button
                 className={`lang-opt ${i18n.language === 'en' ? 'active' : ''}`}
                 onClick={() => changeLang('en')}
@@ -175,10 +182,7 @@ export default function Layout() {
               >ع</button>
             </div>
 
-            <button className="topbar-icon-btn" aria-label="Notifications">
-              <Bell />
-              <span className="notif-dot" />
-            </button>
+            <NotificationBell />
 
             <div className="topbar-divider" />
 
@@ -188,17 +192,17 @@ export default function Layout() {
                   <span className="user-name">{user?.full_name || user?.email}</span>
                   <span className="user-role">{tenant?.name || user?.role}</span>
                 </div>
-                {user?.avatar_url
-                  ? <img src={`/uploads/${user.avatar_url}`} className="user-avatar" alt="avatar" />
-                  : <div className="user-avatar-placeholder">{(user?.full_name || user?.email || '?')[0].toUpperCase()}</div>
-                }
+                {/* avatar_url arrives ready to render — a signed S3 URL, or the
+                    cookie-authed /api/files route. Prefixing /uploads/ onto it
+                    (as this used to) produces a broken image. */}
+                <UserAvatar user={user} size={42} style={{ borderRadius: 12 }} />
               </button>
               {userMenuOpen && (
                 <>
                   <div className="user-menu-backdrop" onClick={() => setUserMenuOpen(false)} />
                   <div className="user-dropdown">
                     <div className="user-dropdown-head">
-                      <div className="user-avatar-placeholder lg">{(user?.full_name || user?.email || '?')[0].toUpperCase()}</div>
+                      <UserAvatar user={user} size={48} style={{ borderRadius: 14 }} />
                       <div>
                         <div className="ud-name">{user?.full_name || user?.email}</div>
                         <div className="ud-email">{user?.email}</div>

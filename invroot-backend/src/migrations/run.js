@@ -1,5 +1,4 @@
-import { createReadStream } from 'fs';
-import { readFile } from 'fs/promises';
+import { readFile, readdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execute } from '../lib/database.js';
@@ -17,14 +16,27 @@ export async function runMigrations() {
       )
     `);
 
-    const migrationFiles = ['001_init.sql', '002_receipts.sql'];
+    // Read the directory instead of a hardcoded list — 003 and 004 were
+    // shipped but never registered here, so they never ran.
+    const migrationFiles = (await readdir(__dirname))
+      .filter(f => f.endsWith('.sql'))
+      .sort();
 
     for (const file of migrationFiles) {
       const [already] = await import('../lib/database.js').then(m => m.query('SELECT id FROM _migrations WHERE filename = ?', [file]));
       if (already) continue;
 
       const sql = await readFile(path.join(__dirname, file), 'utf8');
-      const statements = sql.split(';').map(s => s.trim()).filter(Boolean);
+      // Strip whole-line `--` comments before splitting. Splitting the raw file
+      // on ';' breaks apart any comment that contains one, and the fragment is
+      // then sent to MySQL as a statement.
+      const statements = sql
+        .split('\n')
+        .filter(line => !line.trim().startsWith('--'))
+        .join('\n')
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean);
       for (const stmt of statements) {
         try { await execute(stmt); } catch (e) {
           const msg = e.message || '';

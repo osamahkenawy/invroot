@@ -7,7 +7,7 @@ import { query, execute } from './database.js';
 export async function logAudit({ tenantId, userId, action, entity, entityId, changes = null, ip = null, userAgent = null }) {
   try {
     await execute(
-      `INSERT INTO audit_logs (tenant_id, user_id, action, entity, entity_id, changes, ip_address, user_agent)
+      `INSERT INTO invroot_audit_logs (tenant_id, user_id, action, entity, entity_id, changes, ip_address, user_agent)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [tenantId, userId, action, entity, entityId, changes ? JSON.stringify(changes) : null, ip, userAgent]
     );
@@ -23,7 +23,7 @@ export async function logAudit({ tenantId, userId, action, entity, entityId, cha
 export async function getAuditLogs({ tenantId, entity, entityId, userId, limit = 50, offset = 0 }) {
   let sql = `
     SELECT al.*, u.full_name as user_name, u.email as user_email
-    FROM audit_logs al
+    FROM invroot_audit_logs al
     LEFT JOIN users u ON al.user_id = u.id
     WHERE al.tenant_id = ?
   `;

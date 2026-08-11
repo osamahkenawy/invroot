@@ -1,23 +1,25 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api.js';
 import { AuthContext } from '../../context/AuthContext.jsx';
+import { useToastContext } from '../../context/ToastContext.jsx';
 import { fmtCurrency } from '../../utils/currency.js';
 import { toInputDate } from '../../utils/date.js';
+import BrandAssetModal from '../BrandAssetModal.jsx';
+import PhoneInput, { stripDialOnly } from '../PhoneInput.jsx';
 import { Plus, Trash, Xmark, Copy, User, WarningTriangle, Upload } from 'iconoir-react';
 import './InvoiceFormModal.css';
 
 const CURRENCIES = ['SAR','USD','EUR','GBP','AED','KWD','QAR','EGP','OMR','BHD'];
 const DUE_OPTIONS = [
-  { label: 'On Receipt',    days: 0  },
-  { label: 'After 7 days',  days: 7  },
-  { label: 'After 14 days', days: 14 },
-  { label: 'After 30 days', days: 30 },
-  { label: 'After 45 days', days: 45 },
-  { label: 'After 60 days', days: 60 },
-  { label: 'After 90 days', days: 90 },
-  { label: 'Custom date',   days: -1 },
+  { days: 0,  key: 'on_receipt'  },
+  { days: 7  },
+  { days: 14 },
+  { days: 30 },
+  { days: 45 },
+  { days: 60 },
+  { days: 90 },
+  { days: -1, key: 'custom_date' },
 ];
 
 function emptyLine() {
@@ -33,7 +35,6 @@ function addDays(dateStr, days) {
 export default function InvoiceFormModal({ invoice, onClose, onSave }) {
   const { t } = useTranslation();
   const { tenant } = useContext(AuthContext);
-  const navigate = useNavigate();
   const isEdit = !!invoice;
 
   const [clients,     setClients]     = useState([]);
@@ -43,12 +44,14 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
   const [selClient,   setSelClient]   = useState(null);
   const [showNewClient, setShowNewClient] = useState(false);
   const [branding,    setBranding]    = useState(null);  // company branding check
+  const [logoBroken,  setLogoBroken]  = useState(false); // the URL loaded but the image didn't
+  const [assetModal,  setAssetModal]  = useState(null);  // 'logo' | 'stamp' | null
 
   const [form, setForm] = useState(() => ({
     client_id:     invoice?.client_id     || '',
     issue_date:    invoice?.issue_date    ? toInputDate(invoice.issue_date) : toInputDate(new Date()),
     due_date:      invoice?.due_date      ? toInputDate(invoice.due_date)   : addDays(new Date(), 30),
-    currency:      invoice?.currency      || 'SAR',
+    currency:      invoice?.currency      || tenant?.currency || 'SAR',
     payment_terms: invoice?.payment_terms ?? 30,
     custom_due:    false,
     discount_type: invoice?.discount_type || '',
@@ -83,6 +86,19 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
     // Load company branding to check logo + stamp
     api.get('/company').then(r => { if (r.success) setBranding(r.data); });
   }, []);
+
+  // A new URL deserves a fresh attempt.
+  useEffect(() => { setLogoBroken(false); }, [branding?.logo_url]);
+
+  /* Stop the page behind from scrolling while this covers it — otherwise a
+     wheel gesture past the end of the form scrolls the list underneath, and
+     closing the sheet leaves you somewhere you never navigated to. */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  const showLogo = !!branding?.logo_url && !logoBroken;
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -122,7 +138,12 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
     if (!item) return;
     updateLine(idx, 'description', item.name + (item.description ? ` — ${item.description}` : ''));
     updateLine(idx, 'unit_price',  Number(item.unit_price) || 0);
-    updateLine(idx, 'tax_rate',    Number(item.tax_rate)   || 0);
+    // Only override the tax when the catalog item actually carries a rate.
+    // `|| 0` used to zero the line whenever the item had no linked tax rate,
+    // silently dropping VAT from the invoice.
+    if (item.tax_rate != null && item.tax_rate !== '') {
+      updateLine(idx, 'tax_rate', Number(item.tax_rate) || 0);
+    }
   };
 
   const totals = useMemo(() => {
@@ -135,8 +156,8 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
     return { subtotal, taxAmount, discountAmount, total };
   }, [lines, form.discount_type, form.discount_value]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, { markSent = false } = {}) => {
+    e?.preventDefault();
     setError('');
     if (!form.client_id) return setError(t('invoices.select_client_error'));
     const cleanLines = lines
@@ -165,13 +186,25 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
       line_items:     cleanLines,
     };
 
-    setSaving(true);
+    setSaving(markSent ? 'sent' : true);
     try {
       const res = isEdit
         ? await api.put(`/invoices/${invoice.id}`, payload)
         : await api.post('/invoices', payload);
-      if (res.success) onSave(res);
-      else setError(res.message || 'Error');
+      if (!res.success) return setError(res.message || 'Error');
+
+      /* Two steps deliberately, in this order: the edit is saved first, so if
+         marking it sent fails the work is not lost and the invoice is simply
+         still a draft — the honest state. */
+      if (markSent) {
+        const sent = await api.post(`/invoices/${invoice.id}/mark-sent`, {});
+        if (!sent.success) return setError(sent.message || t('common.action_failed'));
+        return onSave({ ...res, marked_sent: true });
+      }
+      /* The client travels with the result. The create endpoint answers with
+         only an id and a number, and the "what next" dialog has to know
+         whether there is an address to email before it offers to. */
+      onSave({ ...res, client_email: selClient?.email || '', client_name: selClient?.name || '' });
     } finally {
       setSaving(false);
     }
@@ -202,6 +235,14 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
           </div>
           <div className="inv-form-bar-right">
             <button type="button" className="btn btn-sm" onClick={onClose}>{t('common.cancel')}</button>
+            {/* Saving a draft leaves it a draft — correct, but it left people
+                editing the same invoice repeatedly wondering why it never left
+                the Draft list. This is the way out that does not email anyone. */}
+            {isEdit && invoice?.status === 'draft' && (
+              <button type="button" className="btn btn-sm" onClick={() => handleSubmit(null, { markSent: true })} disabled={saving}>
+                {saving === 'sent' ? t('common.saving') : t('invoices.save_and_mark_sent')}
+              </button>
+            )}
             <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
               {saving ? t('common.saving') : t('common.save')}
             </button>
@@ -212,20 +253,20 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
           {error && <div className="form-error inv-form-error">{error}</div>}
 
           {/* ── Missing branding warnings ────────────── */}
-          {branding !== null && (!branding?.logo_url || !branding?.stamp_url) && (
+          {branding !== null && (!showLogo || !branding?.stamp_url) && (
             <div className="inv-branding-warnings">
-              {!branding?.logo_url && (
+              {!showLogo && (
                 <div className="inv-branding-alert">
                   <WarningTriangle className="inv-branding-alert-icon" />
                   <div className="inv-branding-alert-text">
-                    <strong>No company logo uploaded.</strong>
-                    {' '}Your invoice PDF will not include a logo.
+                    <strong>{t('invoices.no_logo')}</strong>
+                    {' '}{t('invoices.no_logo_sub')}
                     <button
                       type="button"
                       className="inv-branding-link"
-                      onClick={() => { onClose(); navigate('/settings/branding'); }}
+                      onClick={() => setAssetModal('logo')}
                     >
-                      Add logo →
+                      {t('invoices.add_logo')} →
                     </button>
                   </div>
                 </div>
@@ -234,14 +275,14 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                 <div className="inv-branding-alert inv-branding-alert--stamp">
                   <WarningTriangle className="inv-branding-alert-icon" />
                   <div className="inv-branding-alert-text">
-                    <strong>No company stamp uploaded.</strong>
-                    {' '}Official stamp will not appear on the PDF.
+                    <strong>{t('invoices.no_stamp')}</strong>
+                    {' '}{t('invoices.no_stamp_sub')}
                     <button
                       type="button"
                       className="inv-branding-link"
-                      onClick={() => { onClose(); navigate('/settings/stamp'); }}
+                      onClick={() => setAssetModal('stamp')}
                     >
-                      Add stamp →
+                      {t('invoices.add_stamp')} →
                     </button>
                   </div>
                 </div>
@@ -255,7 +296,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
               className="inv-banner-input"
               value={form.memo}
               onChange={set('memo')}
-              placeholder="Add a message to appear at the top of the invoice..."
+              placeholder={t('invoices.memo_placeholder')}
             />
           </div>
 
@@ -263,7 +304,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
           <div className="inv-meta-row">
             <div className="inv-meta-left">
               <div className="inv-doc-type">
-                <span className="inv-doc-label">Invoice</span>
+                <span className="inv-doc-label">{t('invoices.doc_label')}</span>
                 {isEdit && invoice?.invoice_number && (
                   <span className="inv-doc-number">#{invoice.invoice_number}</span>
                 )}
@@ -288,19 +329,24 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                 </div>
               </div>
             </div>
-            {/* Logo box — clickable if no logo */}
+            {/* Logo box — clickable if there is no usable logo.
+                `logoBroken` matters: the URL can be valid-looking yet fail to
+                load — a signed S3 link that has expired while the form sat
+                open, or a stored key whose object is gone. A broken-image icon
+                on an invoice is worse than no logo, so fall back to the
+                "add your logo" prompt, which is also the fix. */}
             <div
-              className={`inv-logo-box ${!branding?.logo_url ? 'inv-logo-box--empty' : ''}`}
-              onClick={() => !branding?.logo_url && (onClose(), navigate('/settings/branding'))}
-              title={branding?.logo_url ? tenant?.company_name : 'Click to add your company logo'}
+              className={`inv-logo-box ${!showLogo ? 'inv-logo-box--empty' : ''}`}
+              onClick={() => !showLogo && setAssetModal('logo')}
+              title={showLogo ? tenant?.company_name : 'Click to add your company logo'}
             >
-              {branding?.logo_url
-                ? <img src={`/uploads/logos/${branding.logo_url}`} alt="logo" />
+              {showLogo
+                ? <img src={branding.logo_url} alt="" onError={() => setLogoBroken(true)} />
                 : (
                   <div className="inv-logo-placeholder">
                     <Upload style={{ width: 22, height: 22, color: 'var(--secondary)' }} />
-                    <span style={{ color: 'var(--secondary)', fontSize: 10, fontWeight: 700, marginTop: 4 }}>ADD LOGO</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>Click here</span>
+                    <span style={{ color: 'var(--secondary)', fontSize: 10, fontWeight: 700, marginTop: 4 }}>{t('invoices.add_logo_short')}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 9 }}>{t('invoices.click_here')}</span>
                   </div>
                 )
               }
@@ -310,12 +356,12 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
           {/* ── From / To + Dates ───────────────────── */}
           <div className="inv-from-to-grid">
             <div className="inv-from-to-col">
-              <div className="inv-section-label">From</div>
+              <div className="inv-section-label">{t('invoices.from')}</div>
               <div className="inv-address-box">{fromAddress}</div>
             </div>
             <div className="inv-from-to-col">
               <div className="inv-section-label">
-                To *
+                {t('invoices.to')} *
                 <div style={{ display:'flex', alignItems:'center', gap:6, flex:1 }}>
                   <select
                     value={form.client_id}
@@ -328,7 +374,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                   </select>
                   <button
                     type="button"
-                    title="Add new client"
+                    title={t('invoices.add_new_client')}
                     onClick={() => setShowNewClient(true)}
                     style={{
                       width:30, height:30, borderRadius:8, border:'1.5px dashed var(--primary)',
@@ -344,7 +390,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                 </div>
               </div>
               <div className="inv-address-box inv-to-address">
-                {toAddress || <span className="inv-addr-placeholder">Client address will appear here</span>}
+                {toAddress || <span className="inv-addr-placeholder">{t('invoices.address_placeholder')}</span>}
               </div>
             </div>
             <div className="inv-dates-col">
@@ -360,7 +406,9 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                   className="inv-select-sm"
                 >
                   {DUE_OPTIONS.map(o => (
-                    <option key={o.days} value={o.days}>{o.label}</option>
+                    <option key={o.days} value={o.days}>
+                      {o.key ? t(`invoices.${o.key}`) : t('invoices.after_days', { count: o.days })}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -440,7 +488,7 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
                     {fmtCurrency(lineTotal, form.currency)}
                   </span>
                   <div className="inv-col-actions">
-                    <button type="button" className="icon-btn" title="Duplicate" onClick={() => dupLine(idx)}><Copy /></button>
+                    <button type="button" className="icon-btn" title={t('common.duplicate')} onClick={() => dupLine(idx)}><Copy /></button>
                     <button type="button" className="icon-btn danger" title={t('common.delete')} onClick={() => removeLine(idx)} disabled={lines.length === 1}><Trash /></button>
                   </div>
                 </div>
@@ -462,13 +510,18 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
               {form.discount_type !== '' && (
                 <div className="inv-field" style={{ marginTop:8 }}>
                   <label>{t('common.discount')}</label>
-                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                    <select value={form.discount_type} onChange={set('discount_type')} style={{ width:80 }}>
-                      <option value="">None</option>
+                  {/* Same fix as the quote editor: `inv-field` styles only the
+                      label, so these two rendered as raw browser controls
+                      beside properly styled fields. */}
+                  <div className="inv-discount-pair">
+                    <select className="inv-select-sm inv-discount-type"
+                            value={form.discount_type} onChange={set('discount_type')}>
+                      <option value="">{t('common.none')}</option>
                       <option value="percent">%</option>
                       <option value="fixed">{form.currency}</option>
                     </select>
-                    <input type="number" min={0} step="any" value={form.discount_value} onChange={set('discount_value')} style={{ width:100 }} />
+                    <input className="inv-input-sm inv-discount-value"
+                           type="number" min={0} step="any" value={form.discount_value} onChange={set('discount_value')} />
                   </div>
                 </div>
               )}
@@ -535,30 +588,47 @@ export default function InvoiceFormModal({ invoice, onClose, onSave }) {
           }}
         />
       )}
+
+      {assetModal && (
+        <BrandAssetModal
+          asset={assetModal}
+          currentUrl={assetModal === 'logo' ? branding?.logo_url : branding?.stamp_url}
+          onClose={() => setAssetModal(null)}
+          /* Update in place so the warning clears and the logo shows
+             without discarding the invoice being drafted. */
+          onUploaded={(field, filename) => setBranding(b => ({ ...(b || {}), [field]: filename }))}
+        />
+      )}
     </div>
   );
 }
 
 /* ── Quick-Add Client popup ───────────────────────────── */
 function QuickAddClientModal({ onClose, onCreated }) {
+  const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [form, setForm] = useState({ name: '', email: '', phone: '', company_name: '', billing_address: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Name is required'); return; }
+    if (!form.name.trim()) { setError(t('common.name_required')); return; }
     setSaving(true);
     setError('');
     try {
-      const res = await api.post('/clients', { ...form, status: 'active' });
+      // "+971" on its own is a dial code, not a phone number — don't save it.
+      const res = await api.post('/clients', { ...form, phone: stripDialOnly(form.phone), status: 'active' });
       if (res.success) {
+        showToast(t('common.created_success'));
         onCreated({ id: res.id, name: form.name, currency: null });
       } else {
         setError(res.message || 'Failed to create client');
       }
-    } catch { setError('Network error'); }
+    } catch { setError(t('common.network_error')); }
     finally { setSaving(false); }
   };
 
@@ -582,8 +652,8 @@ function QuickAddClientModal({ onClose, onCreated }) {
           padding:'20px 24px', display:'flex', alignItems:'center', justifyContent:'space-between',
         }}>
           <div>
-            <div style={{ color:'#fff', fontWeight:700, fontSize:17 }}>New Client</div>
-            <div style={{ color:'rgba(255,255,255,.7)', fontSize:12, marginTop:2 }}>Quick-add a client to continue</div>
+            <div style={{ color:'#fff', fontWeight:700, fontSize:17 }}>{t('invoices.new_client')}</div>
+            <div style={{ color:'rgba(255,255,255,.7)', fontSize:12, marginTop:2 }}>{t('invoices.new_client_sub')}</div>
           </div>
           <button onClick={onClose} style={{
             width:32, height:32, borderRadius:8, border:'1px solid rgba(255,255,255,.3)',
@@ -617,27 +687,27 @@ function QuickAddClientModal({ onClose, onCreated }) {
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 16px' }}>
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Full Name *</label>
+              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>{t('common.full_name')} *</label>
               <input
                 value={form.name} onChange={set('name')} required
-                placeholder="e.g. John Smith"
+                placeholder={t('common.ph_person')}
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
                 onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
             <div>
-              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Company</label>
+              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>{t('common.company')}</label>
               <input
                 value={form.company_name} onChange={set('company_name')}
-                placeholder="Acme Corp"
+                placeholder={t('invoices.ph_company')}
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
                 onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
             <div>
-              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Email</label>
+              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>{t('common.email')}</label>
               <input
                 type="email" value={form.email} onChange={set('email')}
                 placeholder="client@example.com"
@@ -646,21 +716,20 @@ function QuickAddClientModal({ onClose, onCreated }) {
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
               />
             </div>
-            <div style={{ gridColumn:'1/-1' }}>
-              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Phone</label>
-              <input
-                value={form.phone} onChange={set('phone')}
-                placeholder="+966 5X XXX XXXX"
-                style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none' }}
-                onFocus={e => e.target.style.borderColor='#0D1B2A'}
-                onBlur={e => e.target.style.borderColor='#e5e7eb'}
+            <div style={{ gridColumn:'1/-1', '--ph-pad-y':'9px', '--ph-pad-x':'12px', '--ph-radius':'8px', '--ph-border':'1.5px', '--ph-font':'14px' }}>
+              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>{t('common.phone')}</label>
+              <PhoneInput
+                value={form.phone}
+                onChange={v => setForm(f => ({ ...f, phone: v }))}
+                defaultCountry={tenant?.country || 'AE'}
+                placeholder="5X XXX XXXX"
               />
             </div>
             <div style={{ gridColumn:'1/-1' }}>
-              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>Billing Address</label>
+              <label style={{ fontSize:12, fontWeight:600, color:'#374151', display:'block', marginBottom:5 }}>{t('common.billing_address')}</label>
               <textarea
                 value={form.billing_address} onChange={set('billing_address')} rows={2}
-                placeholder="Street, City, Country"
+                placeholder={t('invoices.ph_address')}
                 style={{ width:'100%', padding:'9px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, boxSizing:'border-box', outline:'none', resize:'vertical' }}
                 onFocus={e => e.target.style.borderColor='#0D1B2A'}
                 onBlur={e => e.target.style.borderColor='#e5e7eb'}
@@ -673,7 +742,7 @@ function QuickAddClientModal({ onClose, onCreated }) {
             <button type="button" onClick={onClose} style={{
               flex:1, padding:'10px', borderRadius:10, border:'1.5px solid #e5e7eb',
               background:'#fff', cursor:'pointer', fontWeight:600, fontSize:14, color:'#374151',
-            }}>Cancel</button>
+            }}>{t('common.cancel')}</button>
             <button type="submit" disabled={saving} style={{
               flex:2, padding:'10px', borderRadius:10, border:'none',
               background:'linear-gradient(135deg,#0D1B2A,#1e3448)', color:'#fff',

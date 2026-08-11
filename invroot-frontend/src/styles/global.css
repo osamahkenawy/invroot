@@ -6,13 +6,17 @@
   --primary-dark:       #060e15;
   --primary-light:      rgba(13, 27, 42, 0.08);
 
-  --secondary:       #d63a17;
-  --secondary-light: #e8512c;
-  --secondary-dark:  #b8300f;
+  --secondary:       #8A6D1F;
+  --secondary-light: #A9862B;
+  --secondary-dark:  #6E561A;
+
+  /* Gold accent — decorative use only, dark surfaces (see --secondary for text/fills on light) */
+  --gold-bright: #D4AF37;
+  --gold-wash:   #FBF3DC;
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #0D1B2A 0%, #1e3448 100%);
-  --gradient-accent:  linear-gradient(135deg, #d63a17 0%, #e8512c 100%);
+  --gradient-accent:  linear-gradient(135deg, #6E561A 0%, #A9862B 100%);
 
   /* Status */
   --success: #22c55e;
@@ -88,7 +92,7 @@ img { max-width: 100%; display: block; }
 .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .btn-primary:hover:not(:disabled) { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13, 27, 42, 0.3); }
 .btn-secondary { background: var(--secondary); color: #fff; border-color: var(--secondary); }
-.btn-secondary:hover:not(:disabled) { background: var(--secondary-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(214, 58, 23, 0.3); }
+.btn-secondary:hover:not(:disabled) { background: var(--secondary-light); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(138, 109, 31, 0.3); }
 .btn-ghost { background: transparent; color: var(--text-secondary); border-color: var(--border); }
 .btn-ghost:hover { background: var(--hover-bg); }
 .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
@@ -117,6 +121,15 @@ img { max-width: 100%; display: block; }
 .form-group select:focus,
 .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1); }
 .form-group textarea { resize: vertical; min-height: 60px; }
+
+/* Marks the one control a validation message is about. A dialog-level error
+   says what is wrong; this says where — without it, "Please select a client"
+   on a form of a dozen fields leaves the reader hunting. */
+.is-invalid,
+.form-group .is-invalid { border-color: var(--danger); }
+.is-invalid:focus,
+.form-group .is-invalid:focus { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+
 .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; }
 
 /* ── Cards ────────────────────────────────────────────── */
@@ -227,20 +240,38 @@ img { max-width: 100%; display: block; }
   z-index: 1070; padding: 20px;
   overflow-y: auto;
 }
-.modal {
+/* `.modal-panel` is the same shell as `.modal-box` — the Payments invoice
+   picker and both Reminders modals use that name, and it was never defined,
+   so those dialogs rendered with no background, no radius and no height cap:
+   the body sat transparent on the page and long lists ran off the bottom. */
+.modal, .modal-box, .modal-panel {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   width: 100%; max-width: 560px;
-  max-height: 90vh; overflow-y: auto;
+  max-height: 90vh;
+  display: flex; flex-direction: column;   /* header fixed, body scrolls */
+  overflow: hidden;                        /* keep children inside the radius */
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
 }
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 24px 28px;
+  padding: 20px 24px;
   background: var(--gradient-primary);
   color: #fff;
+  flex-shrink: 0;
 }
-.modal-header h2 { font-size: 20px; font-weight: 700; color: #fff; }
+.modal-header h2,
+.modal-header h3 { font-size: 19px; font-weight: 700; color: #fff; margin: 0; }
+/* Some modals close with `.icon-btn` rather than `.modal-close`; it must still
+   read as a control against the dark header. */
+.modal-header .icon-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff; border: none; border-radius: 10px;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s;
+}
+.modal-header .icon-btn:hover { background: rgba(255, 255, 255, 0.28); }
 .modal-close {
   background: rgba(255, 255, 255, 0.15); border: none; cursor: pointer;
   width: 36px; height: 36px; border-radius: 10px;
@@ -348,7 +379,32 @@ img { max-width: 100%; display: block; }
 /* ── Modal sizes + body ───────────────────────────────── */
 .modal-lg { max-width: 880px; }
 .modal-sm { max-width: 460px; }
-.modal-body { padding: 20px 28px; display: flex; flex-direction: column; gap: 18px; }
+.modal-body {
+  padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;
+  overflow-y: auto; flex: 1; min-height: 0;
+}
+.modal-footer { flex-shrink: 0; }
+
+/* `.field-input` was likewise undefined — the Payments search box and every
+   Reminders field rendered as a bare browser input. */
+.field-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1);
+}
+.field-input::placeholder { color: var(--text-muted); }
+textarea.field-input { resize: vertical; min-height: 80px; }
 
 .form-row-3 { grid-template-columns: repeat(3, 1fr) !important; }
 
@@ -513,8 +569,10 @@ img { max-width: 100%; display: block; }
 .m-card-row    { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .m-card-label  { color: var(--text-muted); }
 .m-card-val    { font-weight: 600; color: var(--text-primary); }
-.m-card-actions { display: flex; gap: 8px; margin-top: 4px; }
-.m-card-actions .btn { flex: 1; justify-content: center; }
+.m-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+/* Grow to fill the row but never squash below a readable width — cards can
+   carry up to five actions (send/accept/reject, edit, PDF, convert, delete). */
+.m-card-actions .btn { flex: 1 1 auto; min-width: 96px; justify-content: center; }
 
 /* ── Modal responsive ──────────────────────────────── */
 @media (max-width: 640px) {
@@ -590,7 +648,7 @@ img { max-width: 100%; display: block; }
   color: #fff;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(214,58,23,.4);
+  box-shadow: 0 4px 20px rgba(138,109,31,.4);
   align-items: center;
   justify-content: center;
   z-index: 50;

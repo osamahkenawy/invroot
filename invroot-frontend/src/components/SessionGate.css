@@ -1,0 +1,152 @@
+/* Session lock screen — overlays the app so the page underneath keeps its
+   state. The blur makes it clear the app is still there and waiting, rather
+   than gone. */
+
+.sg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 27, 42, .55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: sg-fade .18s ease-out both;
+}
+@keyframes sg-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.sg-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface, #fff);
+  border-radius: 20px;
+  padding: 32px 30px 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .3);
+  text-align: center;
+  animation: sg-rise .26s cubic-bezier(.21, 1.02, .73, 1) both;
+}
+@keyframes sg-rise {
+  from { transform: translateY(12px) scale(.985); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-overlay, .sg-card { animation: none; }
+}
+
+.sg-icon {
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--surface-2, #f1f5f9);
+  color: var(--primary, #0D1B2A);
+  display: flex; align-items: center; justify-content: center;
+}
+.sg-icon svg { width: 23px; height: 23px; }
+
+.sg-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text, #0f172a);
+}
+.sg-lead {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-muted, #64748b);
+}
+
+/* Naming who is locked out matters on a shared machine — otherwise you can
+   type the wrong person's password and not understand the rejection. */
+.sg-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  text-align: start;
+}
+.sg-who-text { min-width: 0; }
+.sg-who-name {
+  font-size: 13px; font-weight: 600;
+  color: var(--text, #0f172a);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sg-who-mail {
+  font-size: 11.5px;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.sg-form { text-align: start; }
+.sg-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+.sg-input-wrap { position: relative; }
+.sg-input-wrap input {
+  width: 100%;
+  padding: 11px 42px 11px 13px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 11px;
+  font-size: 14px;
+  background: var(--surface, #fff);
+  color: var(--text, #0f172a);
+}
+[dir="rtl"] .sg-input-wrap input { padding: 11px 13px 11px 42px; }
+.sg-input-wrap input:focus {
+  outline: none;
+  border-color: var(--primary, #0D1B2A);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, .08);
+}
+.sg-eye {
+  position: absolute;
+  inset-inline-end: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px; height: 30px;
+  border: none; background: none;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.sg-eye svg { width: 16px; height: 16px; }
+
+.sg-error {
+  margin-top: 9px;
+  font-size: 12.5px;
+  color: var(--danger, #dc2626);
+}
+
+.sg-submit {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: none;
+  border-radius: 11px;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sg-submit:disabled { opacity: .55; cursor: default; }
+.sg-submit:hover:not(:disabled) { filter: brightness(1.12); }
+
+.sg-signout {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+}
+.sg-signout:hover { text-decoration: underline; }

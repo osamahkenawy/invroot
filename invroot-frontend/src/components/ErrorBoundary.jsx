@@ -1,4 +1,7 @@
 import { Component } from 'react';
+// Class component — hooks are unavailable here, so translate off the
+// i18next instance directly.
+import i18n from '../i18n/index.js';
 
 /**
  * Catches render/runtime errors in the React tree and shows a
@@ -29,12 +32,12 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="error-boundary">
           <div className="error-boundary-card">
-            <h1>Something went wrong</h1>
-            <p>An unexpected error occurred. Please try reloading the page.</p>
+            <h1>{i18n.t('common.something_wrong')}</h1>
+            <p>{i18n.t('common.unexpected_error')}</p>
             {this.state.error && (
               <pre className="error-boundary-detail">{String(this.state.error?.message || this.state.error)}</pre>
             )}
-            <button className="btn btn-primary" onClick={this.handleReload}>Reload</button>
+            <button className="btn btn-primary" onClick={this.handleReload}>{i18n.t('common.reload')}</button>
           </div>
         </div>
       );

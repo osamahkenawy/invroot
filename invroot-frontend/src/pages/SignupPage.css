@@ -17,23 +17,52 @@
   overflow: hidden;
 }
 
-/* subtle background decoration */
-.su-left::before {
-  content: '';
+/* ── Artwork layers ──────────────────────────────────────
+   One per step, cross-faded on step change. The panel keeps its gradient as
+   the base colour so any load delay shows brand navy, never white. */
+.su-left-art {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 80% 10%, rgba(214,58,23,0.18) 0%, transparent 50%),
-    radial-gradient(circle at 10% 90%, rgba(58,90,138,0.5) 0%, transparent 55%);
+  background-size: cover;
+  /* Anchor to the bottom: the art is 7:20 but the panel is nearer 1:2, so
+     `cover` crops vertically. The luminous base is the focal point — keep it
+     and let the empty dark sky above be what gets trimmed. */
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity .6s ease;
   pointer-events: none;
 }
-.su-left::after {
-  content: '';
+.su-left-art.is-active { opacity: 1; }
+
+/* The artwork carries its brightest gold in the lower third — exactly where
+   the feature list and stats card sit. This scrim keeps the copy legible
+   without flattening the image where nothing overlaps it. */
+.su-left-scrim {
   position: absolute;
-  bottom: -80px; right: -80px;
-  width: 320px; height: 320px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.03);
+  inset: 0;
+  pointer-events: none;
+  background:
+    /* Strongest at the top where the headline sits; barely there across the
+       middle so the artwork reads; moderate at the base so the stats card
+       stays legible over the gold glow. */
+    linear-gradient(
+      to bottom,
+      rgba(6, 14, 21, 0.78) 0%,
+      rgba(6, 14, 21, 0.60) 22%,
+      rgba(6, 14, 21, 0.38) 44%,   /* feature list sits here */
+      rgba(6, 14, 21, 0.24) 62%,
+      rgba(6, 14, 21, 0.55) 84%,
+      rgba(6, 14, 21, 0.72) 100%
+    );
+}
+
+/* The panel sits on the right in Arabic; mirror the art so the composition
+   still leads inward rather than off the edge. */
+.su-root.rtl .su-left-art { transform: scaleX(-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .su-left-art { transition: none; }
 }
 
 .su-left-inner {
@@ -53,7 +82,8 @@
   margin-bottom: 56px;
 }
 .su-brand span { font-size: 22px; font-weight: 900; letter-spacing: 0.5px; }
-.su-brand-icon { width: 28px; height: 28px; color: #e8512c; }
+.su-brand-logo { height: 38px; max-width: 210px; object-fit: contain; object-position: left; }
+.su-root.rtl .su-brand-logo { object-position: right; }
 
 .su-panel-text { flex: 1; }
 .su-panel-tag {
@@ -100,8 +130,8 @@
   justify-content: center;
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: rgba(214,58,23,0.25);
-  color: #e8512c;
+  background: rgba(212,175,55,0.25);
+  color: #D4AF37;
   flex-shrink: 0;
 }
 .su-bullet-dot svg { width: 12px; height: 12px; }
@@ -118,7 +148,7 @@
   background: rgba(255,255,255,0.25);
   transition: all 0.25s;
 }
-.su-dot.active { background: #e8512c; width: 24px; border-radius: 4px; }
+.su-dot.active { background: #D4AF37; width: 24px; border-radius: 4px; }
 .su-dot.done { background: rgba(255,255,255,0.55); }
 
 /* stat row */
@@ -163,7 +193,7 @@
 }
 .su-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #0D1B2A, #d63a17);
+  background: linear-gradient(90deg, #0D1B2A, #8A6D1F);
   border-radius: 2px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -281,7 +311,7 @@
   box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1);
 }
 .su-plan-card.popular { border-color: var(--secondary); }
-.su-plan-card.popular.selected { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(214,58,23,0.12); }
+.su-plan-card.popular.selected { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(138,109,31,0.12); }
 
 .su-popular-tag {
   position: absolute;
@@ -341,32 +371,129 @@
 .su-btn-icon { width: 16px; height: 16px; }
 
 /* ── Success screen ──────────────────────────────────────── */
-.su-success {
-  display: flex;
-  flex-direction: column;
+/* ── Post-signup confirmation ────────────────────────────
+   A single centred card on the brand gradient. The old screen was a bare
+   check on a flat background with a button stretched across the full page. */
+.su-done-root {
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(212,175,55,.10) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(30,52,72,.35) 0%, transparent 50%),
+    linear-gradient(160deg, #060e15 0%, #0D1B2A 55%, #16293b 100%);
+}
+
+.su-done-card {
   width: 100%;
-  padding: 40px;
-  gap: 16px;
+  max-width: 460px;
+  background: var(--bg-card, #fff);
+  border-radius: 24px;
+  padding: 40px 36px 32px;
   text-align: center;
+  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  animation: su-done-rise .45s cubic-bezier(.21,1.02,.73,1) both;
 }
-.su-success-icon {
-  width: 72px; height: 72px;
+@keyframes su-done-rise {
+  from { opacity: 0; transform: translateY(18px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.su-done-logo { height: 30px; object-fit: contain; margin-bottom: 26px; }
+
+/* Check mark with two ripple rings that settle after the card lands. */
+.su-done-badge {
+  position: relative;
+  width: 76px; height: 76px;
+  margin: 0 auto 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  display: flex; align-items: center; justify-content: center;
   color: #fff;
-  margin-bottom: 8px;
-  box-shadow: 0 8px 32px rgba(22,163,74,0.3);
+  box-shadow: 0 12px 30px rgba(22,163,74,.35);
+  animation: su-done-pop .5s .12s cubic-bezier(.2,1.4,.5,1) both;
 }
-.su-success-icon svg { width: 36px; height: 36px; }
-.su-success h2 { font-size: 26px; font-weight: 800; color: var(--text-primary); }
-.su-success p { font-size: 14px; color: var(--text-muted); max-width: 360px; }
-.su-success .btn { margin-top: 8px; min-width: 200px; justify-content: center; }
+.su-done-badge svg { width: 36px; height: 36px; position: relative; z-index: 1; }
+@keyframes su-done-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.su-done-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(34,197,94,.55);
+  animation: su-done-ripple 2.4s .5s ease-out infinite;
+}
+.su-done-ring--2 { animation-delay: 1.4s; }
+@keyframes su-done-ripple {
+  from { transform: scale(1);   opacity: .7; }
+  to   { transform: scale(1.7); opacity: 0;  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .su-done-card, .su-done-badge { animation: none; }
+  .su-done-ring { display: none; }
+}
+
+.su-done-title {
+  font-size: 27px; font-weight: 800; letter-spacing: -.5px;
+  color: var(--text-primary); margin-bottom: 8px;
+}
+.su-done-lead {
+  font-size: 14px; line-height: 1.6;
+  color: var(--text-muted); margin-bottom: 12px;
+}
+.su-done-email {
+  display: inline-block;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--primary, #0D1B2A);
+  background: #f1f5f9;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 999px;
+  padding: 7px 16px;
+  margin-bottom: 26px;
+  word-break: break-all;
+}
+
+/* What happens next — turns a dead-end screen into a path forward. */
+.su-done-steps {
+  list-style: none; margin: 0 0 26px; padding: 0;
+  text-align: start;
+  border-top: 1px solid var(--border-soft, #eef1f5);
+}
+.su-done-step {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--border-soft, #eef1f5);
+}
+.su-done-step-num {
+  flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--gold-wash, #FBF3DC);
+  color: var(--secondary, #8A6D1F);
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.su-done-step-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.su-done-step-sub   { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+
+.su-done-cta {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 13px 20px;
+  border-radius: 12px;
+  background: var(--gradient-primary, #0D1B2A);
+  color: #fff; font-size: 15px; font-weight: 700;
+  text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
+}
+.su-done-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(13,27,42,.28);
+  text-decoration: none;
+}
+.su-done-spam { font-size: 12px; color: var(--text-muted); margin-top: 16px; }
+
+@media (max-width: 480px) {
+  .su-done-card { padding: 32px 22px 26px; border-radius: 20px; }
+  .su-done-title { font-size: 23px; }
+}
 
 /* ── RTL tweaks ──────────────────────────────────────────── */
 .su-root.rtl .su-input-icon { inset-inline-start: 13px; }
@@ -381,4 +508,97 @@
   .su-plans { gap: 8px; }
   .su-plan-card { padding: 12px 14px; }
   .su-panel-heading { font-size: 26px; }
+}
+
+/* ── Plan cards: price block & local currency ─────────── */
+.su-plan-price-wrap { text-align: end; }
+.su-plan-per {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 1px;
+}
+/* The converted figure is guidance, not the bill — it reads as secondary to
+   the real price above it, and never replaces it. */
+.su-plan-local {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+.su-price-note {
+  margin: 10px 2px 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+}
+.su-plans-loading {
+  padding: 28px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* A sales-led tier isn't selectable — make that visible rather than letting
+   someone click it and wonder why nothing happened. */
+.su-plan-card--contact { cursor: default; }
+.su-plan-card--contact:hover { transform: none; }
+.su-plan-contact {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+}
+.su-plan-contact a { color: var(--primary, #0D1B2A); font-weight: 600; }
+
+/* Pricing country — display only, never the billing currency. */
+.su-currency-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted, #64748b);
+}
+.su-currency-row label { white-space: nowrap; }
+.su-currency-row select {
+  flex: 1;
+  /* Not min-width:0 — with a long label beside it the select collapsed to just
+     its chevron, leaving no way to tell which country was selected. */
+  min-width: 130px;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  font-size: 12.5px;
+  color: var(--text, #0f172a);
+}
+.su-currency-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface-2, #f1f5f9);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+/* ── Verify-email states ─────────────────────────────────
+   Reuses the signup completion card so a new customer sees one visual
+   language, not two. Only the badge colour and the spinner differ. */
+.su-done-badge--neutral {
+  background: var(--surface-2, #eef2f7);
+  color: var(--text-muted, #64748b);
+  box-shadow: none;
+}
+.su-done-badge--error {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 8px 32px rgba(220, 38, 38, .3);
+}
+.su-verify-spinner {
+  display: block;
+  margin: 22px auto 0;
+  border-color: var(--border, #e2e8f0);
+  border-top-color: var(--primary, #0D1B2A);
 }

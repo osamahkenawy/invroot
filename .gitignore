@@ -1,0 +1,28 @@
+# Secrets — never commit. Templates (*.example) carry no values and are tracked.
+.env
+.env.*
+!*.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Runtime / uploads
+uploads/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Mobile app — its own repository (github.com/osamahkenawy/invroot-mobile-app),
+# and the vendored sample it was modelled on. Both contain their own .git, so
+# committing them here would record a broken submodule pointer rather than the
+# files: anyone cloning invroot would get an empty directory.
+invroot-mobile/

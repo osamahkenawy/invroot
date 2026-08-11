@@ -115,9 +115,12 @@ export default function SuperAdminLayout() {
         <div className="sa-sidebar-header">
           {!collapsed && (
             <div className="sa-brand">
-              <div className="sa-brand-mark">{Ico.brand}</div>
+              <div className="sa-brand-mark sa-brand-mark-logo">
+                <img src="/logos/invroot-icon-white-2000-2000.png" alt="" />
+              </div>
               <div>
                 <div className="sa-brand-name">Invroot</div>
+                <div className="sa-brand-operator">by Trasealla Solutions</div>
                 <span className="sa-brand-pill">Super Admin</span>
               </div>
             </div>

@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { Plus, Xmark, Trash, Download, Search, DollarCircle, Check, CreditCard } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
+import InvoicePicker from '../components/payments/InvoicePicker.jsx';
 import { fmtDate } from '../utils/date.js';
 import RecordPaymentModal from '../components/invoices/RecordPaymentModal.jsx';
 import './Payments.css';
@@ -13,6 +16,8 @@ const METHOD_ICON = { cash: '💵', bank_transfer: '🏦', card: '💳', check: 
 
 export default function Payments() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [payments,   setPayments]   = useState([]);
   const [total,      setTotal]      = useState(0);
   const [totalAmt,   setTotalAmt]   = useState(0);
@@ -24,7 +29,7 @@ export default function Payments() {
   const [dateTo,     setDateTo]     = useState('');
   const [picker,     setPicker]     = useState(false);
   const [payInvoice, setPayInvoice] = useState(null);
-  const [currency,   setCurrency]   = useState('SAR');
+  const [currency,   setCurrency]   = useState(tenant?.currency || 'SAR');
   const LIMIT = 20;
 
   const fetchPayments = useCallback(async () => {
@@ -41,16 +46,18 @@ export default function Payments() {
         setTotal(res.total || 0);
         const computed = res.data.reduce((s, p) => s + Number(p.amount), 0);
         setTotalAmt(res.total_amount || computed);
-        setCurrency(res.currency || res.data[0]?.currency || 'SAR');
+        setCurrency(res.currency || res.data[0]?.currency || tenant?.currency || 'SAR');
       }
     } finally { setLoading(false); }
-  }, [pg, method, search, dateFrom, dateTo]);
+  }, [pg, method, search, dateFrom, dateTo, tenant]);
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
   const handleDelete = async (id) => {
     if (!confirm(t('payments.confirm_delete'))) return;
-    await api.delete('/payments/' + id);
+    const res = await api.delete('/payments/' + id);
+    if (res?.success === false) return showToast(res.message || t('common.delete_failed'), 'error');
+    showToast(t('common.deleted_success'));
     fetchPayments();
   };
 
@@ -83,7 +90,7 @@ export default function Payments() {
         <div className="pay-stat-card">
           <div className="pay-stat-icon" style={{ background:'#fef3c7' }}><CreditCard style={{ color:'#d97706' }} /></div>
           <div><div className="pay-stat-label">{t('payments.top_method')}</div>
-            <div className="pay-stat-value">{topMethod ? (METHOD_ICON[topMethod[0]] || '') + ' ' + topMethod[0].replace('_',' ') : '—'}</div></div>
+            <div className="pay-stat-value">{topMethod ? (METHOD_ICON[topMethod[0]] || '') + ' ' + t(`payments.methods.${topMethod[0]}`, { defaultValue: topMethod[0].replace('_',' ') }) : '—'}</div></div>
         </div>
         <div className="pay-stat-card">
           <div className="pay-stat-icon" style={{ background:'#ede9fe' }}><DollarCircle style={{ color:'#7c3aed' }} /></div>
@@ -100,7 +107,7 @@ export default function Payments() {
               onChange={e => { setSearch(e.target.value); setPg(1); }} />
           </div>
           <select className="toolbar-select" value={method} onChange={e => { setMethod(e.target.value); setPg(1); }}>
-            {METHODS.map(m => <option key={m} value={m}>{m ? (METHOD_ICON[m] || '') + ' ' + m.replace('_',' ') : t('payments.all_methods')}</option>)}
+            {METHODS.map(m => <option key={m} value={m}>{m ? (METHOD_ICON[m] || '') + ' ' + t(`payments.methods.${m}`, { defaultValue: m.replace('_',' ') }) : t('payments.all_methods')}</option>)}
           </select>
           <input type="date" className="toolbar-date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPg(1); }} />
           <input type="date" className="toolbar-date" value={dateTo}   onChange={e => { setDateTo(e.target.value);   setPg(1); }} />
@@ -129,10 +136,10 @@ export default function Payments() {
                       <td className="td-mono">{p.invoice_number || '—'}</td>
                       <td>{p.client_name || '—'}</td>
                       <td className="ta-r td-amount">{fmtCurrency(p.amount, p.currency || currency)}</td>
-                      <td><span className="pay-method-badge">{(METHOD_ICON[p.method] || '')} {p.method?.replace('_',' ')}</span></td>
+                      <td><span className="pay-method-badge">{(METHOD_ICON[p.method] || '')} {t(`payments.methods.${p.method}`, { defaultValue: p.method?.replace('_',' ') })}</span></td>
                       <td>{p.reference || '—'}</td>
                       <td className="td-actions">
-                        {p.receipt_id && <button className="icon-btn" title="Download Receipt" onClick={() => downloadReceipt(p)}><Download /></button>}
+                        {p.receipt_id && <button className="icon-btn" title={t('common.download_receipt')} onClick={() => downloadReceipt(p)}><Download /></button>}
                         <button className="icon-btn danger" onClick={() => handleDelete(p.id)}><Trash /></button>
                       </td>
                     </tr>
@@ -156,55 +163,13 @@ export default function Payments() {
         <InvoicePicker onClose={() => setPicker(false)} onPick={inv => { setPicker(false); setPayInvoice(inv); }} currency={currency} />
       )}
       {payInvoice && (
-        <RecordPaymentModal invoice={payInvoice} onClose={() => setPayInvoice(null)} onSaved={() => { setPayInvoice(null); fetchPayments(); }} />
+        <RecordPaymentModal invoice={payInvoice} onClose={() => setPayInvoice(null)} onSaved={() => {
+          setPayInvoice(null);
+          showToast(t('payments.recorded_success'));
+          fetchPayments();
+        }} />
       )}
     </div>
   );
 }
 
-function InvoicePicker({ onClose, onPick, currency }) {
-  const { t } = useTranslation();
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    setLoading(true);
-    api.get('/invoices?limit=50' + (search ? '&search=' + encodeURIComponent(search) : '')).then(res => {
-      if (res.success) setInvoices(res.data.filter(i => !['paid','void','draft'].includes(i.status)));
-      setLoading(false);
-    });
-  }, [search]);
-
-  return (
-    <div className="modal-overlay" onClick={e => { if (e.target===e.currentTarget) onClose(); }}>
-      <div className="modal-panel" style={{ maxWidth:520 }}>
-        <div className="modal-header">
-          <h3>{t('payments.select_invoice')}</h3>
-          <button className="icon-btn" onClick={onClose}><Xmark /></button>
-        </div>
-        <div className="modal-body">
-          <input className="field-input" placeholder={t('common.search') + '...'} value={search} onChange={e => setSearch(e.target.value)} style={{ marginBottom:12 }} />
-          {loading ? <Loader /> : invoices.length===0 ? (
-            <p style={{ color:'var(--text-muted)', padding:16, textAlign:'center' }}>{t('payments.no_open_invoices')}</p>
-          ) : (
-            <div className="pay-picker-list">
-              {invoices.map(inv => {
-                const bal = Math.max(0, Number(inv.total_amount) - Number(inv.paid_amount||0));
-                return (
-                  <button key={inv.id} className="pay-picker-item" onClick={() => onPick(inv)}>
-                    <div><div className="pay-picker-num">{inv.invoice_number}</div><div className="pay-picker-client">{inv.client_name}</div></div>
-                    <div style={{ textAlign:'right' }}>
-                      <div className="pay-picker-amount">{fmtCurrency(bal, inv.currency || currency)}</div>
-                      <span className={'status-badge status-' + inv.status} style={{ fontSize:10 }}>{inv.status}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}

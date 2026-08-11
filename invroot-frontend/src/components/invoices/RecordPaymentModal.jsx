@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/api.js';
 import { fmtCurrency } from '../../utils/currency.js';
@@ -17,10 +17,25 @@ export default function RecordPaymentModal({ invoice, onClose, onSaved }) {
     payment_date: toInputDate(new Date()),
     reference: '',
     notes: '',
+    bank_account_id: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [accounts, setAccounts] = useState([]);
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  /* Which account the money landed in. Recording a payment used to leave the
+     banking module none the wiser — the invoice said paid, the bank balance
+     never moved, and reconciling meant retyping every payment by hand. */
+  useEffect(() => {
+    api.get('/banking/accounts').then(r => {
+      if (r.success) setAccounts((r.data || []).filter(a => a.is_active !== 0));
+    });
+  }, []);
+
+  /* Only offer accounts in the invoice's currency. Crediting an AED payment to
+     a USD account would put a number in the balance that means nothing. */
+  const eligible = accounts.filter(a => !a.currency || !invoice.currency || a.currency === invoice.currency);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +50,10 @@ export default function RecordPaymentModal({ invoice, onClose, onSaved }) {
         payment_date: form.payment_date,
         reference: form.reference,
         notes: form.notes,
+        /* Omitted rather than sent empty: no account chosen is a real state
+           (cash in hand), not a validation failure. It shows up on the banking
+           screen as still to reconcile. */
+        ...(form.bank_account_id ? { bank_account_id: Number(form.bank_account_id) } : {}),
       });
       if (res.success) onSaved(res);
       else setError(res.message || 'Error');
@@ -81,6 +100,23 @@ export default function RecordPaymentModal({ invoice, onClose, onSaved }) {
               <input value={form.reference} onChange={set('reference')} />
             </div>
           </div>
+          {/* Hidden entirely when there are no accounts — an empty dropdown
+              teaching you a feature exists is noise on the way to recording a
+              payment. */}
+          {eligible.length > 0 && (
+            <div className="form-group">
+              <label>{t('payments.deposited_into')}</label>
+              <select value={form.bank_account_id} onChange={set('bank_account_id')}>
+                <option value="">{t('payments.no_account')}</option>
+                {eligible.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}{a.bank_name ? ` — ${a.bank_name}` : ''}
+                  </option>
+                ))}
+              </select>
+              <small className="form-hint">{t('payments.deposited_hint')}</small>
+            </div>
+          )}
           <div className="form-group">
             <label>{t('common.notes')}</label>
             <textarea rows={2} value={form.notes} onChange={set('notes')} />

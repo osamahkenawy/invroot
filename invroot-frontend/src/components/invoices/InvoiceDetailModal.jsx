@@ -5,21 +5,25 @@ import { fmtCurrency } from '../../utils/currency.js';
 import { fmtDate } from '../../utils/date.js';
 import Loader from '../Loader.jsx';
 import RecordPaymentModal from './RecordPaymentModal.jsx';
-import { Xmark, Download, Send, DollarCircle, Copy, Trash, PrintingPage, Link, RefreshDouble, Page, CheckCircle } from 'iconoir-react';
+import ConfirmDialog from '../ConfirmDialog.jsx';
+import { useToastContext } from '../../context/ToastContext.jsx';
+import { Xmark, Download, Send, DollarCircle, Copy, Trash, EditPencil, PrintingPage, Link, RefreshDouble, Page, CheckCircle } from 'iconoir-react';
 
 const STATUS_COLORS = {
   draft: '#9ca3af', sent: '#2563eb', viewed: '#7c3aed',
   partial: '#d97706', paid: '#16a34a', overdue: '#dc2626', void: '#6b7280',
 };
 
-export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
+export default function InvoiceDetailModal({ invoiceId, onClose, onChanged, onEdit }) {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
   const [inv, setInv] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [showPay, setShowPay] = useState(false);
   const [receipts, setReceipts] = useState([]);
   const [relations, setRelations] = useState(null);
+  const [confirmVoid, setConfirmVoid] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -45,20 +49,33 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     setBusy('send');
     const res = await api.post(`/invoices/${inv.id}/send`, {});
     setBusy('');
-    if (res.success) { await load(); onChanged?.(); }
+    if (res.success) { showToast(`Invoice ${inv.invoice_number} sent to the client.`); await load(); onChanged?.(); }
+    else showToast(res.message || 'Could not send the invoice.', 'error');
+  };
+  /* For an invoice that reached the client some other way — handed over, sent
+     on WhatsApp, downloaded from the portal. Records that it went out without
+     mailing the client a second copy. */
+  const doMarkSent = async () => {
+    setBusy('marksent');
+    const res = await api.post(`/invoices/${inv.id}/mark-sent`, {});
+    setBusy('');
+    if (res.success) { showToast(res.message); await load(); onChanged?.(); }
+    else showToast(res.message || t('common.action_failed'), 'error');
   };
   const doVoid = async () => {
-    if (!confirm(t('invoices.confirm_void'))) return;
     setBusy('void');
     const res = await api.post(`/invoices/${inv.id}/void`, {});
     setBusy('');
-    if (res.success) { await load(); onChanged?.(); }
+    setConfirmVoid(false);
+    if (res.success) { showToast(`Invoice ${inv.invoice_number} was voided.`); await load(); onChanged?.(); }
+    else showToast(res.message || 'Could not void the invoice.', 'error');
   };
   const doDuplicate = async () => {
     setBusy('dup');
     const res = await api.post(`/invoices/${inv.id}/duplicate`, {});
     setBusy('');
-    if (res.success) { onChanged?.(); onClose(); }
+    if (res.success) { showToast(`Duplicated as ${res.data?.invoice_number || 'a new draft'}.`); onChanged?.(); onClose(); }
+    else showToast(res.message || 'Could not duplicate the invoice.', 'error');
   };
 
   return (
@@ -83,16 +100,25 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
               <div className="detail-actions">
                 <button className="btn btn-outline btn-sm" onClick={downloadPdf}><Download /> {t('common.download')}</button>
                 {inv.status === 'draft' && (
-                  <button className="btn btn-outline btn-sm" onClick={doSend} disabled={busy === 'send'}>
-                    {busy === 'send' ? <span className="spinner spinner-sm" /> : <><Send /> {t('invoices.send_invoice')}</>}
-                  </button>
+                  <>
+                    <button className="btn btn-outline btn-sm" onClick={doSend} disabled={busy === 'send'}>
+                      {busy === 'send' ? <span className="spinner spinner-sm" /> : <><Send /> {t('invoices.send_invoice')}</>}
+                    </button>
+                    <button className="btn btn-outline btn-sm" onClick={doMarkSent} disabled={busy === 'marksent'}
+                            title={t('invoices.mark_sent_hint')}>
+                      {busy === 'marksent' ? <span className="spinner spinner-sm" /> : <><CheckCircle /> {t('invoices.mark_sent')}</>}
+                    </button>
+                  </>
                 )}
                 {canPay && (
                   <button className="btn btn-primary btn-sm" onClick={() => setShowPay(true)}><DollarCircle /> {t('invoices.record_payment')}</button>
                 )}
+                {onEdit && inv.status !== 'void' && (
+                  <button className="btn btn-outline btn-sm" onClick={() => onEdit(inv)}><EditPencil /> {t('common.edit')}</button>
+                )}
                 <button className="btn btn-outline btn-sm" onClick={doDuplicate} disabled={busy === 'dup'}><Copy /> {t('common.duplicate')}</button>
                 {inv.status !== 'void' && inv.status !== 'paid' && (
-                  <button className="btn btn-ghost btn-sm danger-text" onClick={doVoid} disabled={busy === 'void'}><Trash /> {t('common.void')}</button>
+                  <button className="btn btn-ghost btn-sm danger-text" onClick={() => setConfirmVoid(true)} disabled={busy === 'void'}><Trash /> {t('common.void')}</button>
                 )}
               </div>
 
@@ -191,13 +217,13 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
               {relations && (
                 <div className="detail-section">
                   <h4 className="detail-section-title" style={{display:'flex',alignItems:'center',gap:6}}>
-                    <Link width={14} height={14} /> Related Documents
+                    <Link width={14} height={14} /> {t('common.related_documents')}
                   </h4>
                   <div className="inv-relations-panel">
 
                     {relations.quote && (
                       <div className="inv-rel-group">
-                        <div className="inv-rel-group-label">Converted from Quote</div>
+                        <div className="inv-rel-group-label">{t('invoices.rel_from_quote')}</div>
                         <div className="inv-rel-item">
                           <Page width={14} height={14} style={{color:'#2563eb'}} />
                           <span className="inv-rel-num">{relations.quote.quote_number}</span>
@@ -237,7 +263,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
 
                     {relations.child_revisions?.length > 0 && (
                       <div className="inv-rel-group">
-                        <div className="inv-rel-group-label">Revisions / Replacements</div>
+                        <div className="inv-rel-group-label">{t('invoices.rel_revisions')}</div>
                         {relations.child_revisions.map(c => (
                           <div key={c.id} className="inv-rel-item">
                             <Page width={14} height={14} style={{color:'#f97316'}} />
@@ -251,7 +277,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
 
                     {relations.credit_notes?.length > 0 && (
                       <div className="inv-rel-group">
-                        <div className="inv-rel-group-label">Credit Notes Applied</div>
+                        <div className="inv-rel-group-label">{t('invoices.rel_credit_notes')}</div>
                         {relations.credit_notes.map(cn => (
                           <div key={cn.id} className="inv-rel-item">
                             <CheckCircle width={13} height={13} style={{color:'#dc2626'}} />
@@ -265,7 +291,7 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
 
                     {!relations.quote && !relations.recurring_schedule && !relations.parent_invoice &&
                      !relations.child_revisions?.length && !relations.credit_notes?.length && (
-                      <div style={{color:'var(--text-muted)',fontSize:13}}>No related documents</div>
+                      <div style={{color:'var(--text-muted)',fontSize:13}}>{t('invoices.rel_none')}</div>
                     )}
                   </div>
                 </div>
@@ -279,9 +305,21 @@ export default function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
         <RecordPaymentModal
           invoice={inv}
           onClose={() => setShowPay(false)}
-          onSaved={async () => { setShowPay(false); await load(); onChanged?.(); }}
+          onSaved={async () => { setShowPay(false); showToast(t('invoices.payment_recorded')); await load(); onChanged?.(); }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmVoid}
+        tone="danger"
+        title={t('invoices.confirm_void_title')}
+        message="Voiding cancels the invoice permanently. It stays in your records for audit, but can no longer be paid or edited."
+        detail={inv ? `${inv.invoice_number} — ${inv.client_name || 'client'} — ${fmtCurrency(inv.total_amount, inv.currency)}` : null}
+        confirmLabel="Void invoice"
+        busy={busy === 'void'}
+        onConfirm={doVoid}
+        onCancel={() => setConfirmVoid(false)}
+      />
     </div>
   );
 }

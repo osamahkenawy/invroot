@@ -105,7 +105,7 @@ function PortalDashboard() {
         <h2>{isRTL ? 'مرحباً' : 'Welcome'}, {client.name}</h2>
         <div className="kpi-grid" style={{ marginTop: 16 }}>
           {[
-            [isRTL ? 'الرصيد المستحق' : 'Open Balance', fmtCurrency(data?.open_balance)],
+            [isRTL ? 'الرصيد المستحق' : 'Open Balance', fmtCurrency(data?.open_balance, client.tenant_currency)],
             [isRTL ? 'إجمالي الفواتير' : 'Total Invoices', data?.total_invoices],
             [isRTL ? 'الفواتير المتأخرة' : 'Overdue', data?.overdue_count],
           ].map(([label, val]) => (
@@ -122,6 +122,7 @@ function PortalInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => { portalRequest('/invoices').then(res => { if (res.success) setInvoices(res.data); setLoading(false); }); }, []);
+  const client = JSON.parse(sessionStorage.getItem(PORTAL_CLIENT_KEY) || '{}');
   return (
     <div className="portal-root">
       <h2 style={{ marginBottom: 16 }}>{t('invoices.title')}</h2>
@@ -130,7 +131,7 @@ function PortalInvoices() {
           <table className="data-table">
             <thead><tr><th>#</th><th>{t('common.total')}</th><th>{t('invoices.due_date')}</th><th>{t('common.status')}</th></tr></thead>
             <tbody>
-              {invoices.map(inv => <tr key={inv.id}><td>{inv.invoice_number}</td><td>{fmtCurrency(inv.total_amount)}</td><td>{inv.due_date}</td><td>{inv.status}</td></tr>)}
+              {invoices.map(inv => <tr key={inv.id}><td>{inv.invoice_number}</td><td>{fmtCurrency(inv.total_amount, inv.currency || client.tenant_currency)}</td><td>{inv.due_date}</td><td>{inv.status}</td></tr>)}
             </tbody>
           </table>
         </div>
@@ -144,6 +145,7 @@ function PortalPayments() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => { portalRequest('/payments').then(res => { if (res.success) setPayments(res.data); setLoading(false); }); }, []);
+  const client = JSON.parse(sessionStorage.getItem(PORTAL_CLIENT_KEY) || '{}');
   return (
     <div className="portal-root">
       <h2 style={{ marginBottom: 16 }}>{t('payments.title')}</h2>
@@ -152,7 +154,7 @@ function PortalPayments() {
           <table className="data-table">
             <thead><tr><th>{t('invoices.number')}</th><th>{t('common.amount')}</th><th>{t('payments.method')}</th><th>{t('common.date')}</th></tr></thead>
             <tbody>
-              {payments.map(p => <tr key={p.id}><td>{p.invoice_number}</td><td>{fmtCurrency(p.amount)}</td><td>{p.method}</td><td>{p.payment_date}</td></tr>)}
+              {payments.map(p => <tr key={p.id}><td>{p.invoice_number}</td><td>{fmtCurrency(p.amount, p.currency || client.tenant_currency)}</td><td>{p.method}</td><td>{p.payment_date}</td></tr>)}
             </tbody>
           </table>
         </div>

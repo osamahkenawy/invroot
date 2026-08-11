@@ -1,0 +1,117 @@
+/* ── Brand asset (logo / stamp) upload modal ───────────── */
+.ba-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 27, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  /* Above the invoice form modal it opens from. */
+  z-index: 1200;
+}
+
+.ba-modal {
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 24px 60px rgba(13, 27, 42, 0.28);
+  overflow: hidden;
+  animation: ba-in 0.16s ease-out;
+}
+@keyframes ba-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ba-modal { animation: none; }
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.ba-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px;
+  background: var(--gradient-primary);
+  color: #fff;
+}
+.ba-header h3 { margin: 0; font-size: 16.5px; font-weight: 700; color: #fff; }
+.ba-header p  { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.72); }
+.ba-close {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ba-close:hover:not(:disabled) { background: rgba(255, 255, 255, 0.26); }
+.ba-close:disabled { opacity: 0.5; cursor: not-allowed; }
+.ba-close svg { width: 16px; height: 16px; }
+
+/* ── Body ──────────────────────────────────────────────── */
+.ba-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+
+.ba-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ba-drop {
+  width: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 22px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft, #f8fafc);
+  cursor: pointer;
+  font-family: var(--font);
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ba-drop:hover,
+.ba-drop.dragging {
+  border-color: var(--secondary);
+  background: var(--gold-wash, #FBF3DC);
+}
+.ba-drop:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ba-drop.has-image { border-style: solid; background: var(--bg-card); }
+
+.ba-drop-icon  { width: 26px; height: 26px; color: var(--secondary); }
+.ba-drop-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.ba-drop-hint  { font-size: 12px; color: var(--text-muted); line-height: 1.5; max-width: 34ch; }
+
+.ba-preview {
+  max-width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+}
+.ba-replace { font-size: 11.5px; color: var(--text-muted); }
+
+/* ── Footer ────────────────────────────────────────────── */
+.ba-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-soft, #f9fafb);
+}
+.ba-footer .btn { display: inline-flex; align-items: center; gap: 7px; }
+[dir="rtl"] .ba-footer { flex-direction: row-reverse; }

@@ -1,0 +1,120 @@
+/* Coupon entry — deliberately quiet until asked for, so it doesn't imply that
+   anyone paying full price has missed a trick. */
+
+.cf-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary, #0D1B2A);
+  cursor: pointer;
+}
+.cf-toggle svg { width: 14px; height: 14px; }
+.cf-toggle:hover { text-decoration: underline; }
+
+.cf-form { margin-top: 10px; }
+.cf-row { display: flex; gap: 8px; }
+.cf-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  font-size: 13px;
+  letter-spacing: .5px;
+  background: var(--surface, #fff);
+  color: var(--text, #0f172a);
+}
+.cf-row input:focus {
+  outline: none;
+  border-color: var(--primary, #0D1B2A);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, .07);
+}
+.cf-apply {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 9px;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cf-apply:disabled { opacity: .5; cursor: default; }
+
+.cf-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--danger, #dc2626);
+}
+.cf-error svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* Applied state — shows the arithmetic rather than just "code applied", so
+   the amount is visible before anyone reaches Stripe's payment page. */
+.cf-applied {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 11px;
+  background: #f0fdf4;
+}
+.cf-applied-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+.cf-applied-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+}
+.cf-applied-badge svg { width: 12px; height: 12px; }
+.cf-remove {
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: #15803d;
+  cursor: pointer;
+}
+.cf-remove:hover { text-decoration: underline; }
+
+.cf-applied-lines { display: flex; flex-direction: column; gap: 4px; }
+.cf-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: #166534;
+}
+.cf-strike { text-decoration: line-through; opacity: .65; }
+.cf-line--off { font-weight: 600; }
+.cf-line--total {
+  margin-top: 5px;
+  padding-top: 7px;
+  border-top: 1px solid #bbf7d0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #14532d;
+}
+.cf-duration {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: #15803d;
+}

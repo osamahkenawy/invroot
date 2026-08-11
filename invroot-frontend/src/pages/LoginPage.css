@@ -7,7 +7,11 @@
 /* ── Left rich panel ─────────────────────────────────── */
 .login-left {
   flex: 1;
-  background: linear-gradient(160deg, #060e15 0%, #0D1B2A 50%, #1e3448 100%);
+  /* Gradient stays underneath as the fallback if the artwork fails to load,
+     and fills any area the cover-crop leaves bare on extreme aspect ratios. */
+  background-color: #0D1B2A;
+  background-image:
+    linear-gradient(160deg, #060e15 0%, #0D1B2A 50%, #1e3448 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,22 +21,37 @@
   overflow: hidden;
 }
 
+/* Artwork layer — sits above the gradient, below the copy (.login-branding
+   is z-index 1). Anchored right so the gold curves and sphere stay in frame
+   while the text sits over the calm upper-left of the image. */
 .login-left::before {
   content: '';
   position: absolute; inset: 0;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(214,58,23,0.16) 0%, transparent 50%),
-    radial-gradient(circle at 15% 85%, rgba(30,52,72,0.45) 0%, transparent 55%);
+  background-image: url('/background-image-invroot-login-page.png');
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
   pointer-events: none;
 }
+
+/* Readability scrim — the copy is white, and the artwork brightens toward the
+   gold accents, so darken from the text side outward. */
 .login-left::after {
   content: '';
-  position: absolute;
-  bottom: -90px; right: -90px;
-  width: 360px; height: 360px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.025);
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(6, 14, 21, 0.66) 0%,
+    rgba(9, 20, 31, 0.46) 42%,
+    rgba(13, 27, 42, 0.18) 76%,
+    rgba(13, 27, 42, 0.06) 100%
+  );
+  pointer-events: none;
 }
+[dir="rtl"] .login-left::before,
+.rtl .login-left::before { background-position: center left; }
+[dir="rtl"] .login-left::after,
+.rtl .login-left::after  { transform: scaleX(-1); }
 
 .login-branding {
   position: relative;
@@ -47,7 +66,8 @@
   gap: 10px;
   margin-bottom: 48px;
 }
-.login-brand-icon { width: 28px; height: 28px; color: #e8512c; }
+.login-brand-logo { height: 54px; max-width: 290px; object-fit: contain; object-position: left; }
+.login-root.rtl .login-brand-logo { object-position: right; }
 .login-logo {
   font-size: 22px;
   font-weight: 900;
@@ -63,7 +83,7 @@
   letter-spacing: -0.5px;
   margin-bottom: 14px;
 }
-.login-headline span { color: #e8512c; }
+.login-headline span { color: #D4AF37; }
 
 .login-tagline {
   font-size: 15px;
@@ -92,8 +112,8 @@
   justify-content: center;
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: rgba(214,58,23,0.25);
-  color: #e8512c;
+  background: rgba(212,175,55,0.25);
+  color: #D4AF37;
   flex-shrink: 0;
 }
 .login-feat-dot svg { width: 12px; height: 12px; }
@@ -133,6 +153,26 @@
 .login-card {
   width: 100%;
   max-width: 380px;
+}
+
+/* ── Mobile brand ─────────────────────────────────────
+   Shown only under 768px, where .login-left (and the logo it carries) is
+   hidden. Sits above the language switcher. */
+.login-mobile-brand { display: none; }
+.login-mobile-brand img {
+  height: 46px;
+  max-width: 240px;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .login-mobile-brand {
+    display: flex;
+    /* Everything else in the card is start-aligned (chips, title, labels),
+       so the mark follows suit rather than floating centred above them. */
+    justify-content: flex-start;
+    margin-bottom: 22px;
+  }
 }
 
 .login-lang-row {
@@ -217,6 +257,8 @@
   .login-left { display: none; }
   .login-right { width: 100%; }
 }
+
+.login-lang-row {
   display: flex;
   gap: 8px;
   margin-bottom: 28px;

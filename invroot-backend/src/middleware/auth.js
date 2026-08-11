@@ -1,13 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
-import { query } from '../lib/database.js';
+import { query, execute } from '../lib/database.js';
 
-export function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, tenant_id: user.tenant_id, is_super_admin: !!user.is_super_admin },
-    config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
-  );
+export function generateToken(user, sessionId) {
+  const payload = { id: user.id, username: user.username, role: user.role, tenant_id: user.tenant_id, is_super_admin: !!user.is_super_admin };
+  if (sessionId) payload.sid = sessionId;
+  return jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 }
 
 export function verifyToken(token) {
@@ -26,7 +24,12 @@ export async function authMiddleware(req, res, next) {
     const [user] = await query(
       `SELECT u.id, u.tenant_id, u.username, u.email, u.full_name, u.role, u.is_active,
               u.is_owner, u.is_super_admin, u.avatar_url, u.lang_preference,
-              t.status as tenant_status, t.slug as tenant_slug
+              u.must_change_password,
+              t.status as tenant_status, t.slug as tenant_slug,
+              /* Survives a page reload: /auth/me rebuilds the client's user
+                 object from here, so the pending-checkout prompt must be
+                 visible on this query too, not only on login. */
+              t.plan as tenant_plan, t.pending_plan
        FROM users u
        LEFT JOIN tenants t ON u.tenant_id = t.id
        WHERE u.id = ?`,
@@ -35,6 +38,23 @@ export async function authMiddleware(req, res, next) {
 
     if (!user || !user.is_active) {
       return res.status(401).json({ success: false, message: 'User not found or inactive' });
+    }
+
+    // Session validation. Tokens issued after the security update carry a
+    // `sid`; a revoked/expired session row invalidates the token (this is what
+    // makes "log out everywhere" work). Legacy tokens without a sid still pass.
+    if (decoded.sid) {
+      const [session] = await query(
+        'SELECT id, revoked_at, expires_at FROM user_sessions WHERE id = ? AND user_id = ?',
+        [decoded.sid, user.id]
+      );
+      const expired = session?.expires_at && new Date(session.expires_at) < new Date();
+      if (!session || session.revoked_at || expired) {
+        return res.status(401).json({ success: false, code: 'SESSION_REVOKED', message: 'Session ended. Please sign in again.' });
+      }
+      req.sessionId = decoded.sid;
+      // Touch last-seen without blocking the request.
+      execute('UPDATE user_sessions SET last_seen_at = NOW() WHERE id = ?', [decoded.sid]).catch(() => {});
     }
 
     // Load role permissions

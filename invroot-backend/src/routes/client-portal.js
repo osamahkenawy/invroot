@@ -2,6 +2,8 @@ import express from 'express';
 import { query, execute } from '../lib/database.js';
 import { optionalAuth } from '../middleware/auth.js';
 import crypto from 'crypto';
+import { failure } from '../lib/api-error.js';
+import { withAssetUrls } from '../lib/storage.js';
 
 const router = express.Router();
 
@@ -28,8 +30,8 @@ router.post('/login', async (req, res) => {
     await execute('UPDATE clients SET portal_session_token = ?, portal_session_expires = DATE_ADD(NOW(), INTERVAL 24 HOUR) WHERE id = ?', [sessionToken, client.id]);
 
     const { portal_token: _t, portal_session_token: _s, ...safeClient } = client;
-    res.json({ success: true, token: sessionToken, client: safeClient });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+    res.json({ success: true, token: sessionToken, client: await withAssetUrls(safeClient) });
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 /* ── Middleware to auth client portal sessions ───────── */
@@ -56,15 +58,15 @@ router.get('/dashboard', portalAuth, async (req, res) => {
     );
     const recent = await query('SELECT id, invoice_number, status, total_amount, due_date FROM invoices WHERE client_id = ? ORDER BY created_at DESC LIMIT 5', [clientId]);
     res.json({ success: true, data: { ...summary, recent } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 /* ── GET /api/client-portal/invoices ───────────────── */
 router.get('/invoices', portalAuth, async (req, res) => {
   try {
-    const invoices = await query('SELECT id, invoice_number, status, total_amount, paid_amount, due_date, issue_date FROM invoices WHERE client_id = ? ORDER BY created_at DESC', [req.portalClient.id]);
+    const invoices = await query('SELECT id, invoice_number, status, total_amount, paid_amount, currency, due_date, issue_date FROM invoices WHERE client_id = ? ORDER BY created_at DESC', [req.portalClient.id]);
     res.json({ success: true, data: invoices });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 /* ── GET /api/client-portal/invoices/:id ───────────── */
@@ -74,15 +76,15 @@ router.get('/invoices/:id', portalAuth, async (req, res) => {
     if (!invoice) return res.status(404).json({ success: false, message: 'Not found' });
     if (invoice.status === 'sent') await execute("UPDATE invoices SET status = 'viewed', viewed_at = NOW() WHERE id = ?", [invoice.id]);
     res.json({ success: true, data: invoice });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 /* ── GET /api/client-portal/payments ───────────────── */
 router.get('/payments', portalAuth, async (req, res) => {
   try {
-    const payments = await query('SELECT p.*, i.invoice_number FROM payments p JOIN invoices i ON p.invoice_id = i.id WHERE p.client_id = ? ORDER BY p.payment_date DESC', [req.portalClient.id]);
+    const payments = await query('SELECT p.*, i.invoice_number, i.currency FROM payments p JOIN invoices i ON p.invoice_id = i.id WHERE p.client_id = ? ORDER BY p.payment_date DESC', [req.portalClient.id]);
     res.json({ success: true, data: payments });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 /* ── POST /api/client-portal/quotes/:id/respond ─────── */
@@ -90,10 +92,10 @@ router.post('/quotes/:id/respond', portalAuth, async (req, res) => {
   try {
     const { response, comment } = req.body; // 'accepted' | 'rejected'
     if (!['accepted', 'rejected'].includes(response)) return res.status(400).json({ success: false, message: 'response must be accepted or rejected' });
-    const result = await execute('UPDATE quotes SET status = ?, client_comment = ? WHERE id = ? AND client_id = ?', [response, comment, req.params.id, req.portalClient.id]);
+    const result = await execute('UPDATE invroot_quotes SET status = ?, client_comment = ? WHERE id = ? AND client_id = ?', [response, comment, req.params.id, req.portalClient.id]);
     if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Quote not found' });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'client-portal' }); }
 });
 
 export default router;

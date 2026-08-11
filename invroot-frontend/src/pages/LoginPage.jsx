@@ -1,8 +1,9 @@
 import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeClosed, Check, Page } from 'iconoir-react';
+import { Eye, EyeClosed, Check } from 'iconoir-react';
 import { AuthContext } from '../context/AuthContext.jsx';
+import api from '../lib/api.js';
 import './LoginPage.css';
 
 const LANGUAGES = [
@@ -27,18 +28,25 @@ export default function LoginPage() {
   const { t, i18n } = useTranslation();
   const { login } = useContext(AuthContext);
   const navigate  = useNavigate();
+  const [searchParams] = useSearchParams();
+  const justVerified = searchParams.get('verified') === '1';
 
   const [email,    setEmail]    = useState('test@acme.com');
   const [password, setPassword] = useState('Test1234!');
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [resent,   setResent]   = useState(false);
+  const [resending, setResending] = useState(false);
 
   const isRTL = i18n.language === 'ar';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNeedsVerify(false);
+    setResent(false);
     setLoading(true);
     try {
       const res = await login(email, password);
@@ -46,17 +54,35 @@ export default function LoginPage() {
         if (res.user?.is_super_admin) {
           localStorage.setItem('sa_token', res.token);
           navigate('/admin');
+        } else if (res.user?.pending_plan) {
+          /* They picked a paid plan at signup and have not paid for it. Signup
+             deliberately grants nothing, so this is where the choice is
+             honoured — carrying `onboarding` through so a first-time customer
+             still gets their company-profile setup after the card step. */
+          const first = !res.user?.last_login_at ? '&onboarding=1' : '';
+          navigate(`/settings/billing?checkout=${res.user.pending_plan}${first}`);
+        } else if (!res.user?.last_login_at) {
+          // First login ever — send them to set up their company profile.
+          navigate('/settings?onboarding=1');
         } else {
           navigate('/dashboard');
         }
       } else {
+        if (res.code === 'EMAIL_NOT_VERIFIED') setNeedsVerify(true);
         setError(res.message || 'Login failed');
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError(t('common.network_error'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const resendVerification = async () => {
+    setResending(true);
+    await api.post('/auth/resend-verification', { email });
+    setResending(false);
+    setResent(true);
   };
 
   return (
@@ -64,8 +90,7 @@ export default function LoginPage() {
       <div className="login-left">
         <div className="login-branding">
           <div className="login-brand-row">
-            <Page className="login-brand-icon" />
-            <span className="login-logo">INVROOT</span>
+            <img src="/logos/invroot-sidebar-logo-600-200-white-logo.png" alt="INVROOT" className="login-brand-logo" />
           </div>
 
           <h2 className="login-headline">
@@ -96,6 +121,12 @@ export default function LoginPage() {
 
       <div className="login-right">
         <div className="login-card">
+          {/* The left panel (and its logo) is hidden on mobile, so carry the
+              mark into the card above the language switcher. */}
+          <div className="login-mobile-brand">
+            <img src="/logos/invroot-600_200-colored-logo.png" alt="INVROOT" />
+          </div>
+
           <div className="login-lang-row">
             {LANGUAGES.map(l => (
               <button
@@ -111,8 +142,24 @@ export default function LoginPage() {
           <h1 className="login-title">{t('auth.login')}</h1>
           <p className="login-subtitle">{isRTL ? 'مرحباً بعودتك! أدخل بياناتك للمتابعة.' : 'Welcome back! Enter your credentials to continue.'}</p>
 
+          {justVerified && !error && (
+            <div className="alert alert-success">{t('auth.email_verified')}</div>
+          )}
           {error && (
             <div className="alert alert-error">{error}</div>
+          )}
+          {needsVerify && !resent && (
+            <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <span>{isRTL ? 'لم يتم تأكيد بريدك بعد.' : 'Your email isn’t verified yet.'}</span>
+              <button type="button" className="btn btn-outline btn-sm" onClick={resendVerification} disabled={resending}>
+                {resending ? <span className="spinner spinner-sm" /> : (isRTL ? 'إعادة إرسال الرابط' : 'Resend link')}
+              </button>
+            </div>
+          )}
+          {resent && (
+            <div className="alert alert-success">
+              {isRTL ? 'أرسلنا رابط تحقق جديد إلى بريدك.' : 'We’ve sent a fresh verification link to your email.'}
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="login-form">

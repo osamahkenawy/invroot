@@ -2,6 +2,7 @@ import express from 'express';
 import { query } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
+import { failure } from '../lib/api-error.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -123,7 +124,7 @@ router.get('/dashboard', async (req, res) => {
       recent_invoices,
       recent_expenses,
     }});
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reports' }); }
 });
 
 /* ── GET /api/reports/aging ─────────────────────────── */
@@ -143,7 +144,7 @@ router.get('/aging', async (req, res) => {
       [req.tenantId]
     );
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reports' }); }
 });
 
 /* ── GET /api/reports/sales ─────────────────────────── */
@@ -171,7 +172,7 @@ router.get('/sales', async (req, res) => {
 
     const rows = await query(sql, params);
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'reports' }); }
 });
 
 export default router;

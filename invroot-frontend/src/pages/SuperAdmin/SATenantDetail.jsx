@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
-function fmtAmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
+import { fmtAmt } from './saFormat.js';
 function fmtN(n)   { return Number(n || 0).toLocaleString(); }
 
 const INV_STATUS = ['paid','sent','overdue','draft','partial'];
@@ -44,6 +44,7 @@ export default function SATenantDetail() {
   if (!data)   return <div className="sa-empty">Tenant not found.</div>;
 
   const t       = data.tenant;
+  const cur     = t.currency || '';   // every figure on this page is this tenant's
   const bg      = avatarColor(t.company_name);
   const initial = (t.company_name || '?')[0].toUpperCase();
   const collectionRate = data.total_invoiced > 0
@@ -91,14 +92,14 @@ export default function SATenantDetail() {
           <div className="sa-kpi-top">
             <div className="sa-kpi-icon-box purple">{KIco.invoiced}</div>
           </div>
-          <div className="sa-kpi-value">{fmtAmt(data.total_invoiced)}</div>
+          <div className="sa-kpi-value">{fmtAmt(data.total_invoiced, cur, 2)}</div>
           <div className="sa-kpi-label">Total Invoiced</div>
         </div>
         <div className="sa-kpi-card">
           <div className="sa-kpi-top">
             <div className="sa-kpi-icon-box green">{KIco.collected}</div>
           </div>
-          <div className="sa-kpi-value">{fmtAmt(data.total_collected)}</div>
+          <div className="sa-kpi-value">{fmtAmt(data.total_collected, cur, 2)}</div>
           <div className="sa-kpi-label">Total Collected</div>
         </div>
         <div className="sa-kpi-card">
@@ -156,12 +157,14 @@ export default function SATenantDetail() {
                 {(data.invoice_summary || INV_STATUS).map((s, i) => {
                   const status = typeof s === 'string' ? s : s.status;
                   const count  = typeof s === 'string' ? 0  : Number(s.count);
-                  const amount = typeof s === 'string' ? 0  : Number(s.total_amount);
+                  // The endpoint aliases SUM(total_amount) as `amount`; reading
+                  // `total_amount` here rendered every bucket as 0.00.
+                  const amount = typeof s === 'string' ? 0  : Number(s.amount);
                   return (
                     <div key={status} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
                       <span className={`sa-badge ${status}`}>{status}</span>
                       <div style={{ textAlign:'right' }}>
-                        <span style={{ fontWeight:700, fontSize:13 }}>{fmtAmt(amount)}</span>
+                        <span style={{ fontWeight:700, fontSize:13 }}>{fmtAmt(amount, cur, 2)}</span>
                         <span style={{ color:'#94a3b8', fontSize:11, marginLeft:8 }}>{count} inv.</span>
                       </div>
                     </div>
@@ -183,7 +186,7 @@ export default function SATenantDetail() {
                 <tr key={inv.id}>
                   <td className="td-mono">{inv.invoice_number}</td>
                   <td>{inv.client_name}</td>
-                  <td className="td-amt">{fmtAmt(inv.total_amount)}</td>
+                  <td className="td-amt">{fmtAmt(inv.total_amount, cur, 2)}</td>
                   <td><span className={`sa-badge ${inv.status}`}>{inv.status}</span></td>
                   <td className="td-mono">{inv.issue_date?.slice(0,10)}</td>
                   <td className="td-mono">{inv.due_date?.slice(0,10)}</td>
@@ -207,10 +210,10 @@ export default function SATenantDetail() {
                 <tr key={p.id}>
                   <td className="td-mono">{p.payment_date?.slice(0,10)}</td>
                   <td className="td-mono">{p.invoice_number || '—'}</td>
-                  <td className="td-amt">{fmtAmt(p.amount)}</td>
+                  <td className="td-amt">{fmtAmt(p.amount, cur, 2)}</td>
                   <td>
                     <span className="sa-badge no-dot" style={{ background:'#f5f3ff', color:'#6d28d9' }}>
-                      {p.payment_method?.replace('_',' ')}
+                      {p.method?.replace('_',' ')}
                     </span>
                   </td>
                   <td className="td-mono">{p.reference_number || '—'}</td>

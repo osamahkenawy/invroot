@@ -3,6 +3,7 @@ import { query, execute } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
 import { requireOwner } from '../middleware/role-gate.js';
+import { failure } from '../lib/api-error.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
   try {
     const rows = await query('SELECT * FROM tax_rates WHERE tenant_id = ? ORDER BY name', [req.tenantId]);
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'tax' }); }
 });
 
 /* ── POST /api/tax ──────────────────────────────────── */
@@ -26,7 +27,7 @@ router.post('/', requireOwner, async (req, res) => {
       [req.tenantId, name, rate, type || 'VAT', is_compound ? 1 : 0, is_inclusive ? 1 : 0, is_default ? 1 : 0]
     );
     res.status(201).json({ success: true, id: result.insertId });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'tax' }); }
 });
 
 /* ── PUT /api/tax/:id ───────────────────────────────── */
@@ -38,7 +39,7 @@ router.put('/:id', requireOwner, async (req, res) => {
       [name, rate, type, is_compound ? 1 : 0, is_inclusive ? 1 : 0, is_default ? 1 : 0, is_active ? 1 : 0, req.params.id, req.tenantId]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'tax' }); }
 });
 
 /* ── DELETE /api/tax/:id ────────────────────────────── */
@@ -46,7 +47,7 @@ router.delete('/:id', requireOwner, async (req, res) => {
   try {
     await execute('UPDATE tax_rates SET is_active = 0 WHERE id = ? AND tenant_id = ?', [req.params.id, req.tenantId]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'tax' }); }
 });
 
 /* ── GET /api/tax/report ────────────────────────────── */
@@ -68,7 +69,7 @@ router.get('/report', async (req, res) => {
       [req.tenantId, date_from, date_to]
     );
     res.json({ success: true, data: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'tax' }); }
 });
 
 export default router;

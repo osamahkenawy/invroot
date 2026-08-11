@@ -1,0 +1,87 @@
+/* Post-save "what next" dialog. Three stacked actions, biggest decision first. */
+
+.isv-modal { position: relative; padding: 0; overflow: hidden; }
+
+.isv-x {
+  position: absolute; inset-inline-end: 12px; top: 12px;
+  background: none; border: none; cursor: pointer; padding: 6px;
+  border-radius: 8px; color: var(--text-muted); line-height: 0;
+}
+.isv-x:hover { background: var(--hover-bg, #f3f5f9); color: var(--text-primary); }
+.isv-x svg { width: 18px; height: 18px; }
+
+/* ── Head ─────────────────────────────────────────────── */
+.isv-head { padding: 30px 28px 22px; text-align: center; }
+
+.isv-badge {
+  width: 54px; height: 54px; margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--success, #16a34a);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.12);
+}
+.isv-badge svg { width: 26px; height: 26px; }
+
+.isv-head h3 {
+  margin: 0; font-size: 19px; font-weight: 800; color: var(--text-primary);
+}
+/* The number is the thing people scan for, so it gets its own line and the
+   tabular face the rest of the app uses for document numbers. */
+.isv-number {
+  margin: 6px 0 0; font-size: 14px; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: .3px;
+  color: var(--secondary, #c9a24b);
+}
+.isv-lead {
+  margin: 10px 0 0; font-size: 13.5px; line-height: 1.6;
+  color: var(--text-secondary, #64708a);
+}
+
+/* ── Actions ──────────────────────────────────────────── */
+.isv-actions {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 4px 24px 22px;
+}
+
+.isv-action {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 14px 16px; text-align: start;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #e7ebf3);
+  border-radius: var(--radius-lg, 14px);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .08s ease;
+}
+.isv-action:hover:not(:disabled) {
+  border-color: var(--secondary, #c9a24b);
+  background: var(--gold-wash, #fbf3dc);
+}
+.isv-action:active:not(:disabled) { transform: translateY(1px); }
+.isv-action:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Emailing is the point of the document, so it carries the brand colour while
+   the other two stay quiet. */
+.isv-action--primary { border-color: var(--secondary, #c9a24b); }
+.isv-action--primary .isv-ico { background: var(--secondary, #c9a24b); color: #fff; }
+
+.isv-ico {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--hover-bg, #f3f5f9); color: var(--text-primary);
+}
+.isv-ico svg { width: 18px; height: 18px; }
+
+.isv-label { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.isv-label strong { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.isv-label small {
+  font-size: 12px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Foot ─────────────────────────────────────────────── */
+.isv-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 24px; border-top: 1px solid var(--border, #e7ebf3);
+  background: var(--bg-subtle, #f8fafc);
+}

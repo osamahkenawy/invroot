@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
+/* Referenced by the search box below; it was never defined here, which crashed
+   the whole page with "SearchIcon is not defined". */
+const SearchIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 export default function SAUsers() {
   const [users,   setUsers]   = useState([]);
   const [total,   setTotal]   = useState(0);
@@ -76,7 +85,7 @@ export default function SAUsers() {
                 <tr key={u.id}>
                   <td style={{ fontWeight:600 }}>{u.full_name}</td>
                   <td style={{ fontSize:12 }}>{u.email}</td>
-                  <td style={{ fontSize:12, color:'#6b7280' }}>{u.company_name || '—'}</td>
+                  <td style={{ fontSize:12, color:'#6b7280' }}>{u.tenant_name || '—'}</td>
                   <td>
                     <span className="sa-badge no-dot" style={{ background:'#f1f5f9', color:'#374151' }}>{u.role}</span>
                   </td>

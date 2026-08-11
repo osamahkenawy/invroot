@@ -1,6 +1,14 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { query, execute } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { sendTenantWelcomeEmail } from '../lib/email.js';
+import { logAudit } from '../lib/audit-logger.js';
+import { config } from '../config.js';
+import { failure, AppError } from '../lib/api-error.js';
+import { createStripeCoupon, normaliseCode } from '../lib/coupons.js';
+import { stripe, isStripeConfigured } from '../lib/stripe-client.js';
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -26,7 +34,9 @@ router.get('/overview', async (req, res) => {
       query('SELECT COUNT(*) AS total FROM invoices'),
       query('SELECT COUNT(*) AS total FROM payments'),
       query('SELECT COALESCE(SUM(amount),0) AS total FROM payments'),
-      query("SELECT COUNT(*) AS total FROM tenants WHERE status = 'active'"),
+      // A trialing tenant is live and serving requests (see requireActiveTenant),
+      // so counting only status='active' reported 0 active while every tenant worked.
+      query("SELECT COUNT(*) AS total FROM tenants WHERE status IN ('active','trialing')"),
       query("SELECT COUNT(*) AS total FROM tenants WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"),
       query("SELECT COUNT(*) AS total FROM invoices WHERE status = 'overdue'"),
     ]);
@@ -42,18 +52,32 @@ router.get('/overview', async (req, res) => {
 
     // Top 5 tenants by revenue
     const topTenants = await query(`
-      SELECT t.id, t.company_name, t.status, t.plan,
-             COUNT(DISTINCT i.id) AS invoice_count,
-             COALESCE(SUM(p.amount),0) AS total_revenue
+      SELECT t.id, t.company_name, t.status, t.plan, t.currency,
+             (SELECT COUNT(*) FROM invoices i WHERE i.tenant_id = t.id) AS invoice_count,
+             (SELECT COALESCE(SUM(p.amount),0) FROM payments p WHERE p.tenant_id = t.id) AS total_revenue
       FROM tenants t
-      LEFT JOIN invoices i ON i.tenant_id = t.id
-      LEFT JOIN payments p ON p.tenant_id = t.id
-      GROUP BY t.id ORDER BY total_revenue DESC LIMIT 5`);
+      ORDER BY total_revenue DESC LIMIT 5`);
 
     // Invoice status distribution
     const invoiceStatus = await query(`
       SELECT status, COUNT(*) AS count, COALESCE(SUM(total_amount),0) AS amount
       FROM invoices GROUP BY status`);
+
+    // Tenants grouped by lifecycle status (active / trialing / suspended / …).
+    const tenantStatus = await query(
+      'SELECT status, COUNT(*) AS count FROM tenants GROUP BY status'
+    );
+
+    // Revenue must be reported per currency — tenants bill in different ones,
+    // so a single summed figure would be meaningless.
+    const revenueByCurrency = await query(`
+      SELECT COALESCE(t.currency,'—') AS currency,
+             COALESCE(SUM(p.amount),0) AS total,
+             COUNT(p.id) AS payments
+      FROM payments p
+      LEFT JOIN tenants t ON t.id = p.tenant_id
+      GROUP BY COALESCE(t.currency,'—')
+      ORDER BY total DESC`);
 
     res.json({
       success: true,
@@ -71,14 +95,126 @@ router.get('/overview', async (req, res) => {
         revenue_trend: trend,
         top_tenants: topTenants,
         invoice_status: invoiceStatus,
+        tenant_status: tenantStatus,
+        revenue_by_currency: revenueByCurrency,
       },
     });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
    TENANTS
 ════════════════════════════════════════════ */
+
+/* Generate a readable temporary password (no ambiguous characters). */
+function generateTempPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // no I/O
+  const lower = 'abcdefghijkmnopqrstuvwxyz';  // no l
+  const digit = '23456789';                   // no 0/1
+  const symbol = '!@#$%&*';
+  const all = upper + lower + digit + symbol;
+  const pick = (set) => set[crypto.randomInt(set.length)];
+  // Guarantee one of each class, then fill to 12 and shuffle.
+  const chars = [pick(upper), pick(lower), pick(digit), pick(symbol)];
+  while (chars.length < 12) chars.push(pick(all));
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
+/* POST /api/super-admin/tenants ─────────────────────── */
+/* Provision a new tenant company plus its owner account. The owner receives a
+   temporary password by email and must change it on first sign-in. */
+router.post('/tenants', async (req, res) => {
+  try {
+    const {
+      company_name, email, owner_name, phone,
+      plan = 'starter', currency = 'AED', lang = 'en',
+      status = 'trialing', password, send_email = true,
+    } = req.body;
+
+    if (!company_name || !email) {
+      return res.status(400).json({ success: false, message: 'Company name and email are required' });
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid email address' });
+    }
+    if (password && password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+    }
+
+    const [existing] = await query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing) return res.status(409).json({ success: false, message: 'That email is already registered' });
+
+    // An admin-supplied password is still treated as temporary — the owner is
+    // the only one who should end up knowing their password.
+    const tempPassword = password || generateTempPassword();
+    const hashed = await bcrypt.hash(tempPassword, 12);
+
+    const slug = company_name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 30)
+      + '-' + crypto.randomBytes(3).toString('hex');
+
+    const tenantResult = await execute(
+      `INSERT INTO tenants (company_name, slug, email, phone, status, plan, currency, lang)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company_name, slug, email, phone || null, status, plan, currency, lang]
+    );
+    const tenantId = tenantResult.insertId;
+
+    // email_verified = 1: the platform admin vouches for this address, so the
+    // owner can sign in immediately rather than waiting on a verification link.
+    const userResult = await execute(
+      `INSERT INTO users (tenant_id, email, username, full_name, password, must_change_password,
+                          role, is_owner, is_active, email_verified, lang_preference)
+       VALUES (?, ?, ?, ?, ?, 1, 'admin', 1, 1, 1, ?)`,
+      [tenantId, email, email, owner_name || company_name, hashed, lang]
+    );
+
+    const loginLink = `${config.app.frontendUrl}/login`;
+    let emailed = false, emailError = null;
+    if (send_email) {
+      try {
+        await sendTenantWelcomeEmail({
+          to: email,
+          name: owner_name || company_name,
+          companyName: company_name,
+          email,
+          tempPassword,
+          loginLink,
+          lang,
+        });
+        emailed = true;
+      } catch (mailErr) {
+        // Never roll back a created account over a mail failure — report it so
+        // the admin can pass the credentials along manually.
+        emailError = mailErr.message;
+        console.error('Tenant welcome email failed:', mailErr);
+      }
+    }
+
+    await logAudit({
+      tenantId, userId: req.user.id, action: 'create', entity: 'tenant', entityId: tenantId, ip: req.ip,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Tenant created',
+      data: {
+        tenant_id: tenantId,
+        user_id: userResult.insertId,
+        email,
+        // Returned once so the admin can hand it over if the email bounced.
+        temp_password: tempPassword,
+        emailed,
+        email_error: emailError,
+      },
+    });
+  } catch (err) {
+    failure(res, err, { context: 'super-admin' });
+  }
+});
 
 /* GET /api/super-admin/tenants ──────────────────────── */
 router.get('/tenants', async (req, res) => {
@@ -92,22 +228,23 @@ router.get('/tenants', async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const where = conds.join(' AND ');
 
+    // Correlated subqueries, not parallel LEFT JOINs: joining users, invoices
+    // and payments together multiplies rows (users × invoices per payment), which
+    // inflated SUM(p.amount) by the invoice count — revenue read ~288x too high.
     const rows = await query(`
       SELECT t.*,
-             COUNT(DISTINCT u.id) AS user_count,
-             COUNT(DISTINCT i.id) AS invoice_count,
-             COALESCE(SUM(p.amount),0) AS total_revenue
+             (SELECT COUNT(*) FROM users u
+               WHERE u.tenant_id = t.id AND (u.is_super_admin = 0 OR u.is_super_admin IS NULL)) AS user_count,
+             (SELECT COUNT(*) FROM invoices i WHERE i.tenant_id = t.id) AS invoice_count,
+             (SELECT COALESCE(SUM(p.amount),0) FROM payments p WHERE p.tenant_id = t.id) AS total_revenue
       FROM tenants t
-      LEFT JOIN users u ON u.tenant_id = t.id AND (u.is_super_admin = 0 OR u.is_super_admin IS NULL)
-      LEFT JOIN invoices i ON i.tenant_id = t.id
-      LEFT JOIN payments p ON p.tenant_id = t.id
       WHERE ${where}
-      GROUP BY t.id ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
+      ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), parseInt(offset)]
     );
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM tenants t WHERE ${where}`, params);
     res.json({ success: true, data: rows, total });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* GET /api/super-admin/tenants/:id ──────────────────── */
@@ -141,7 +278,7 @@ router.get('/tenants/:id', async (req, res) => {
         total_collected,
       },
     });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* PUT /api/super-admin/tenants/:id/status ───────────── */
@@ -152,7 +289,7 @@ router.put('/tenants/:id/status', async (req, res) => {
     if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
     await execute('UPDATE tenants SET status = ? WHERE id = ?', [status, req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* PUT /api/super-admin/tenants/:id/plan ─────────────── */
@@ -161,7 +298,7 @@ router.put('/tenants/:id/plan', async (req, res) => {
     const { plan } = req.body;
     await execute('UPDATE tenants SET plan = ? WHERE id = ?', [plan, req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* PUT /api/super-admin/tenants/:id/impersonate ──────── */
@@ -182,7 +319,7 @@ router.post('/tenants/:id/impersonate', async (req, res) => {
       { expiresIn: '1h' }
     );
     res.json({ success: true, token, tenant_id: owner.tenant_id, email: owner.email });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
@@ -212,7 +349,7 @@ router.get('/invoices', async (req, res) => {
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM invoices i LEFT JOIN tenants t ON i.tenant_id = t.id LEFT JOIN clients c ON i.client_id = c.id WHERE ${where}`, params);
     const [{ total_amount }] = await query(`SELECT COALESCE(SUM(i.total_amount),0) AS total_amount FROM invoices i LEFT JOIN tenants t ON i.tenant_id = t.id LEFT JOIN clients c ON i.client_id = c.id WHERE ${where}`, params);
     res.json({ success: true, data: rows, total, total_amount });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
@@ -231,7 +368,7 @@ router.get('/payments', async (req, res) => {
     const offset = (parseInt(page)-1)*parseInt(limit);
     const where = conds.join(' AND ');
     const rows = await query(`
-      SELECT p.*, t.company_name AS tenant_name, i.invoice_number, c.name AS client_name
+      SELECT p.*, t.company_name AS tenant_name, t.currency, i.invoice_number, c.name AS client_name
       FROM payments p
       LEFT JOIN tenants t ON p.tenant_id = t.id
       LEFT JOIN invoices i ON p.invoice_id = i.id
@@ -242,7 +379,7 @@ router.get('/payments', async (req, res) => {
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM payments p WHERE ${conds.join(' AND ')}`, params);
     const [{ total_amount }] = await query(`SELECT COALESCE(SUM(amount),0) AS total_amount FROM payments p WHERE ${conds.join(' AND ')}`, params);
     res.json({ success: true, data: rows, total, total_amount });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
@@ -269,7 +406,7 @@ router.get('/users', async (req, res) => {
     );
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM users u WHERE ${where}`, params);
     res.json({ success: true, data: rows, total });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 router.put('/users/:id/toggle', async (req, res) => {
@@ -279,7 +416,7 @@ router.put('/users/:id/toggle', async (req, res) => {
     if (user.is_super_admin) return res.status(403).json({ success: false, message: 'Cannot modify super admin' });
     await execute('UPDATE users SET is_active = ? WHERE id = ?', [user.is_active ? 0 : 1, user.id]);
     res.json({ success: true, is_active: !user.is_active });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
@@ -306,28 +443,50 @@ router.get('/analytics', async (req, res) => {
 
       // Top clients across platform
       query(`
-        SELECT c.name AS client_name, t.company_name AS tenant_name,
+        SELECT c.name AS client_name, t.company_name AS tenant_name, t.currency,
                COUNT(i.id) AS invoice_count, COALESCE(SUM(i.total_amount),0) AS total_value
         FROM clients c
         JOIN invoices i ON i.client_id = c.id
         JOIN tenants t ON c.tenant_id = t.id
         GROUP BY c.id ORDER BY total_value DESC LIMIT 10`),
 
-      // Invoice ageing
+      // Invoice ageing, returned as one row per bucket (with counts) — the
+      // portal renders a labelled bar per bucket, which a single wide row
+      // of d1_30/d31_60/… columns could not populate.
       query(`
-        SELECT
-          SUM(CASE WHEN DATEDIFF(NOW(),due_date) BETWEEN 1  AND 30 THEN total_amount-paid_amount ELSE 0 END) AS d1_30,
-          SUM(CASE WHEN DATEDIFF(NOW(),due_date) BETWEEN 31 AND 60 THEN total_amount-paid_amount ELSE 0 END) AS d31_60,
-          SUM(CASE WHEN DATEDIFF(NOW(),due_date) BETWEEN 61 AND 90 THEN total_amount-paid_amount ELSE 0 END) AS d61_90,
-          SUM(CASE WHEN DATEDIFF(NOW(),due_date) > 90              THEN total_amount-paid_amount ELSE 0 END) AS d90plus
-        FROM invoices WHERE status IN ('sent','overdue','partial')`),
+        SELECT bucket,
+               COALESCE(SUM(total_amount - paid_amount),0) AS amount,
+               COUNT(*) AS count
+        FROM (
+          SELECT total_amount, paid_amount,
+                 CASE
+                   WHEN DATEDIFF(NOW(), due_date) BETWEEN 1  AND 30 THEN '1-30 days'
+                   WHEN DATEDIFF(NOW(), due_date) BETWEEN 31 AND 60 THEN '31-60 days'
+                   WHEN DATEDIFF(NOW(), due_date) BETWEEN 61 AND 90 THEN '61-90 days'
+                   WHEN DATEDIFF(NOW(), due_date) > 90              THEN '90+ days'
+                   ELSE 'not due'
+                 END AS bucket
+          FROM invoices
+          WHERE status IN ('sent','overdue','partial')
+        ) b
+        WHERE bucket <> 'not due'
+        GROUP BY bucket
+        ORDER BY FIELD(bucket,'1-30 days','31-60 days','61-90 days','90+ days')`),
     ]);
 
     res.json({
       success: true,
-      data: { signups, revenue_by_day: revenueByDay, top_clients: topClients, invoice_ageing: invoiceAgeing[0] },
+      data: {
+        // `signups_trend` is the name the portal reads; `signups` kept for
+        // any existing consumer.
+        signups,
+        signups_trend: signups,
+        revenue_by_day: revenueByDay,
+        top_clients: topClients,
+        invoice_ageing: invoiceAgeing,
+      },
     });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 /* ════════════════════════════════════════════
@@ -344,6 +503,163 @@ router.get('/me', (req, res) => {
       is_super_admin: true,
     },
   });
+});
+
+
+
+
+/* ══════════════════════════════════════════════════════
+   Coupons
+
+   Created in Stripe first, then mirrored here. That order matters: if the
+   Stripe call fails there is no local row promising a discount that cannot
+   actually be applied. The reverse order would leave codes that validate
+   locally and then fail at the payment step.
+   ══════════════════════════════════════════════════════ */
+
+/* ── GET /api/super-admin/coupons ───────────────────── */
+router.get('/coupons', async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT c.*,
+              (SELECT COUNT(*) FROM invroot_coupon_redemptions r WHERE r.coupon_id = c.id) AS redemptions
+         FROM invroot_coupons c
+        ORDER BY c.archived_at IS NOT NULL, c.created_at DESC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
+});
+
+/* ── GET /api/super-admin/coupons/:id/redemptions ───── */
+router.get('/coupons/:id/redemptions', async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT r.*, t.company_name
+         FROM invroot_coupon_redemptions r
+         LEFT JOIN tenants t ON t.id = r.tenant_id
+        WHERE r.coupon_id = ?
+        ORDER BY r.redeemed_at DESC`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
+});
+
+/* ── POST /api/super-admin/coupons ──────────────────── */
+router.post('/coupons', async (req, res) => {
+  try {
+    if (!isStripeConfigured()) {
+      throw new AppError('Stripe is not configured, so coupons cannot be created.', 400, 'NO_STRIPE');
+    }
+
+    const {
+      code, discount_type, percent_off, amount_off, currency = 'AED',
+      duration = 'once', duration_in_months, max_redemptions, expires_at,
+      applies_to_plans, note,
+    } = req.body || {};
+
+    const wanted = normaliseCode(code);
+    if (!wanted || wanted.length < 3) throw new AppError('Give the code at least 3 characters.', 400, 'BAD_CODE');
+    if (!/^[A-Z0-9_-]+$/.test(wanted)) {
+      throw new AppError('Codes may use letters, numbers, hyphens and underscores only.', 400, 'BAD_CODE');
+    }
+
+    if (discount_type === 'percent') {
+      const pct = Number(percent_off);
+      if (!(pct > 0 && pct <= 100)) throw new AppError('Percentage must be between 1 and 100.', 400, 'BAD_DISCOUNT');
+    } else if (discount_type === 'amount') {
+      if (!(Number(amount_off) > 0)) throw new AppError('Amount must be greater than zero.', 400, 'BAD_DISCOUNT');
+    } else {
+      throw new AppError('Choose a percentage or a fixed amount.', 400, 'BAD_DISCOUNT');
+    }
+
+    if (duration === 'repeating' && !(Number(duration_in_months) > 0)) {
+      throw new AppError('A repeating discount needs a number of months.', 400, 'BAD_DURATION');
+    }
+
+    /* Reject a duplicate before touching Stripe. Creating there first would
+       leave an orphaned Stripe coupon that no local row references. */
+    const [clash] = await query('SELECT id FROM invroot_coupons WHERE code = ?', [wanted]);
+    if (clash) throw new AppError('That code already exists.', 409, 'DUPLICATE');
+
+    const { coupon, promo } = await createStripeCoupon({
+      code: wanted,
+      percentOff: discount_type === 'percent' ? percent_off : null,
+      amountOff:  discount_type === 'amount'  ? amount_off  : null,
+      currency, duration, durationInMonths: duration_in_months,
+      maxRedemptions: max_redemptions, expiresAt: expires_at,
+    });
+
+    const result = await execute(
+      `INSERT INTO invroot_coupons
+         (code, stripe_coupon_id, stripe_promotion_code_id, discount_type,
+          percent_off, amount_off, currency, duration, duration_in_months,
+          applies_to_plans, max_redemptions, expires_at, note, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        wanted, coupon.id, promo.id, discount_type,
+        discount_type === 'percent' ? Number(percent_off) : null,
+        discount_type === 'amount' ? Number(amount_off) : null,
+        discount_type === 'amount' ? String(currency).toUpperCase() : null,
+        duration, duration === 'repeating' ? Number(duration_in_months) : null,
+        Array.isArray(applies_to_plans) ? applies_to_plans.join(',') : (applies_to_plans || null),
+        max_redemptions ? Number(max_redemptions) : null,
+        expires_at || null, note || null, req.user.id,
+      ]
+    );
+
+    await logAudit({
+      userId: req.user.id, action: 'create', entity: 'coupon',
+      entityId: result.insertId, ip: req.ip, meta: { code: wanted },
+    }).catch(() => {});
+
+    res.status(201).json({ success: true, id: result.insertId, code: wanted });
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
+});
+
+/* ── PATCH /api/super-admin/coupons/:id ─────────────── */
+/* Only activation is editable. Changing a discount after issue would alter
+   what existing holders were promised; issue a new code instead. */
+router.patch('/coupons/:id', async (req, res) => {
+  try {
+    const [row] = await query('SELECT * FROM invroot_coupons WHERE id = ?', [req.params.id]);
+    if (!row) throw new AppError('Coupon not found', 404, 'NOT_FOUND');
+
+    const active = req.body?.active ? 1 : 0;
+
+    /* Stripe first again: if it refuses, the local row must not claim a state
+       Stripe doesn't agree with. */
+    await stripe().promotionCodes.update(row.stripe_promotion_code_id, { active: !!active });
+    await execute('UPDATE invroot_coupons SET active = ? WHERE id = ?', [active, row.id]);
+
+    await logAudit({
+      userId: req.user.id, action: 'update', entity: 'coupon',
+      entityId: row.id, ip: req.ip, meta: { code: row.code, active: !!active },
+    }).catch(() => {});
+
+    res.json({ success: true, active: !!active });
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
+});
+
+/* ── DELETE /api/super-admin/coupons/:id ────────────── */
+/* Archive, never delete. Redemption rows reference this coupon and are the
+   record of what customers were actually charged. */
+router.delete('/coupons/:id', async (req, res) => {
+  try {
+    const [row] = await query('SELECT * FROM invroot_coupons WHERE id = ?', [req.params.id]);
+    if (!row) throw new AppError('Coupon not found', 404, 'NOT_FOUND');
+
+    // Deactivating in Stripe is what actually stops it being redeemed.
+    await stripe().promotionCodes.update(row.stripe_promotion_code_id, { active: false }).catch(() => {});
+    await execute('UPDATE invroot_coupons SET active = 0, archived_at = NOW() WHERE id = ?', [row.id]);
+
+    await logAudit({
+      userId: req.user.id, action: 'delete', entity: 'coupon',
+      entityId: row.id, ip: req.ip, meta: { code: row.code },
+    }).catch(() => {});
+
+    res.json({ success: true, message: 'Coupon archived' });
+  } catch (err) { failure(res, err, { context: 'super-admin' }); }
 });
 
 export default router;

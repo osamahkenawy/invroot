@@ -28,11 +28,11 @@ export default function SuperAdminLogin() {
     <div className="sa-login-root">
       <div className="sa-login-card">
         <div className="sa-login-brand">
-          <div className="sa-login-logo">
-            <span className="sa-login-logo-icon">⚡</span>
+          <div className="sa-login-logo sa-login-logo-img">
+            <img src="/logos/invroot-colored-icon-2000-2000.png" alt="Invroot" />
           </div>
           <h1 className="sa-login-title">Invroot</h1>
-          <p className="sa-login-sub">Platform Administration</p>
+          <p className="sa-login-sub">Platform Administration · Trasealla Solutions</p>
         </div>
 
         <form className="sa-login-form" onSubmit={handleLogin}>

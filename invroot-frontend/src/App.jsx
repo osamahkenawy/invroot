@@ -1,15 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
+import SessionGate from './components/SessionGate.jsx';
 import Layout from './components/Layout.jsx';
 
 // Auth pages
-import LoginPage    from './pages/LoginPage.jsx';
-import SignupPage   from './pages/SignupPage.jsx';
+import LoginPage          from './pages/LoginPage.jsx';
+import SignupPage         from './pages/SignupPage.jsx';
+import VerifyEmailPage    from './pages/VerifyEmailPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage  from './pages/ResetPasswordPage.jsx';
+import PayInvoicePage     from './pages/PayInvoicePage.jsx';
+import ForcePasswordChangePage from './pages/ForcePasswordChangePage.jsx';
 
 // Main pages
 import Dashboard    from './pages/Dashboard.jsx';
 import Clients      from './pages/Clients.jsx';
+import ClientStatement from './pages/ClientStatement.jsx';
 import Catalog      from './pages/Catalog.jsx';
 import Invoices     from './pages/Invoices.jsx';
 import Quotes       from './pages/Quotes.jsx';
@@ -49,12 +56,25 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useContext(AuthContext);
   if (loading) return <div className="full-page-loader"><span className="spinner" /></div>;
   if (!user) return <Navigate to="/login" replace />;
+  // Accounts created by a platform admin start on a temporary password and
+  // can't reach the app until they've chosen their own.
+  if (user.must_change_password) return <Navigate to="/change-password" replace />;
   return children;
 }
 
 function PublicRoute({ children }) {
   const { user } = useContext(AuthContext);
+  if (user?.must_change_password) return <Navigate to="/change-password" replace />;
   if (user) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+/* Only reachable while the temporary-password flag is set. */
+function FirstLoginRoute({ children }) {
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return <div className="full-page-loader"><span className="spinner" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.must_change_password) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -66,6 +86,11 @@ export default function App() {
           {/* Public */}
           <Route path="/login"          element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/signup"         element={<PublicRoute><SignupPage /></PublicRoute>} />
+          <Route path="/verify-email"   element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/pay/:token"      element={<PayInvoicePage />} />
+          <Route path="/change-password" element={<FirstLoginRoute><ForcePasswordChangePage /></FirstLoginRoute>} />
           <Route path="/portal/*"       element={<ClientPortal />} />
 
           {/* Protected */}
@@ -73,6 +98,7 @@ export default function App() {
             <Route path="/"              element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard"     element={<Dashboard />} />
             <Route path="/clients"       element={<Clients />} />
+            <Route path="/clients/:id/statement" element={<ClientStatement />} />
             <Route path="/catalog"       element={<Catalog />} />
             <Route path="/invoices"      element={<Invoices />} />
             <Route path="/invoices/:id"  element={<Invoices />} />
@@ -106,6 +132,10 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        {/* Outside <Routes> on purpose: it overlays whatever is rendered
+            rather than replacing it, so an expired session doesn't discard
+            the page the person was working on. */}
+        <SessionGate />
       </BrowserRouter>
     </AuthProvider>
   );

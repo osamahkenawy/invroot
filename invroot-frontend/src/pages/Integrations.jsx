@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
 import { Plus, Trash } from 'iconoir-react';
 
 export default function Integrations() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
   const [tab, setTab] = useState('webhooks');
   const [webhooks, setWebhooks] = useState([]);
   const [apiKeys,  setApiKeys]  = useState([]);
@@ -25,11 +27,19 @@ export default function Integrations() {
     const name = prompt('API Key name:');
     if (!name) return;
     const res = await api.post('/integrations/api-keys', { name, scope: ['read', 'write'] });
-    if (res.success) { setNewKey(res.key); setApiKeys(k => [...k, { id: res.id, name }]); }
+    if (res.success) {
+      setNewKey(res.key);
+      setApiKeys(k => [...k, { id: res.id, name }]);
+      showToast(t('common.created_success'));
+    } else showToast(res.message || t('common.save_failed'), 'error');
   };
 
   const deleteKey = async (id) => {
-    if (confirm(t('common.confirm'))) { await api.delete(`/integrations/api-keys/${id}`); setApiKeys(k => k.filter(x => x.id !== id)); }
+    if (!confirm(t('common.confirm'))) return;
+    const res = await api.delete(`/integrations/api-keys/${id}`);
+    if (res?.success === false) return showToast(res.message || t('common.delete_failed'), 'error');
+    setApiKeys(k => k.filter(x => x.id !== id));
+    showToast(t('common.deleted_success'));
   };
 
   return (
@@ -55,7 +65,7 @@ export default function Integrations() {
               {newKey && <div className="alert alert-success" style={{ wordBreak: 'break-all' }}>{t('integrations.key_generated')}<br /><strong>{newKey}</strong></div>}
               <div className="table-wrapper">
                 <table className="data-table">
-                  <thead><tr><th>Name</th><th>Created</th><th>Last Used</th><th></th></tr></thead>
+                  <thead><tr><th>{t('integrations.col_name')}</th><th>{t('integrations.col_created')}</th><th>{t('integrations.col_last_used')}</th><th></th></tr></thead>
                   <tbody>
                     {apiKeys.length === 0 && <tr><td colSpan={4} className="empty-row">{t('common.no_data')}</td></tr>}
                     {apiKeys.map(k => (
@@ -75,7 +85,7 @@ export default function Integrations() {
           {tab === 'webhooks' && (
             <div className="table-wrapper">
               <table className="data-table">
-                <thead><tr><th>URL</th><th>Events</th><th>Status</th></tr></thead>
+                <thead><tr><th>{t('integrations.col_url')}</th><th>{t('integrations.col_events')}</th><th>{t('common.status')}</th></tr></thead>
                 <tbody>
                   {webhooks.length === 0 && <tr><td colSpan={3} className="empty-row">{t('common.no_data')}</td></tr>}
                   {webhooks.map(w => (

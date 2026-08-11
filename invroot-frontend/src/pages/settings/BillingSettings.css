@@ -1,0 +1,144 @@
+/* ── Usage ────────────────────────────────────────────── */
+.bil-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px 24px;
+}
+.bil-usage-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.bil-usage-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.bil-usage-count { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bil-usage-count.ok   { color: var(--text-muted); }
+.bil-usage-count.warn { color: #d97706; }
+.bil-usage-count.full { color: var(--danger, #dc2626); }
+
+.bil-usage-track {
+  height: 7px; border-radius: 5px; overflow: hidden;
+  background: var(--bg-soft, #eef1f6);
+}
+.bil-usage-fill { height: 100%; border-radius: 5px; transition: width .3s ease; }
+.bil-usage-fill.ok   { background: linear-gradient(90deg, var(--primary), var(--primary-light-blue, #24384f)); }
+.bil-usage-fill.warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.bil-usage-fill.full { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+.bil-usage-note {
+  margin: 16px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.6;
+}
+
+/* ── Plan cards ───────────────────────────────────────── */
+.bil-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.bil-plan {
+  position: relative;
+  display: flex; flex-direction: column;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #e7ebf3);
+  border-radius: var(--radius-lg, 16px);
+  padding: 24px 22px 22px;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.bil-plan:hover { box-shadow: var(--shadow-md, 0 6px 24px rgba(13,27,42,.09)); transform: translateY(-2px); }
+
+/* Current plan gets the gold rail; Enterprise gets a navy one. */
+.bil-plan.current {
+  border-color: var(--secondary, #8A6D1F);
+  box-shadow: 0 0 0 1px var(--secondary, #8A6D1F);
+}
+.bil-plan.sales { border-color: var(--primary, #0D1B2A); }
+
+.bil-plan-badge {
+  position: absolute; top: -10px; inset-inline-start: 22px;
+  background: var(--secondary, #8A6D1F); color: #fff;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+  padding: 4px 10px; border-radius: 20px;
+}
+
+.bil-plan-name {
+  font-size: 15px; font-weight: 800; color: var(--text-primary);
+  letter-spacing: .2px; margin-bottom: 10px;
+}
+
+.bil-plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 18px; min-height: 42px; }
+.bil-plan-cur { font-size: 15px; font-weight: 700; color: var(--text-secondary, #64708a); }
+.bil-plan-amt { font-size: 36px; font-weight: 800; color: var(--text-primary); line-height: 1; letter-spacing: -.02em; }
+.bil-plan-per { font-size: 13px; color: var(--text-muted); }
+.bil-plan-custom { font-size: 19px; font-weight: 700; color: var(--primary); }
+
+.bil-plan-features {
+  list-style: none; padding: 0; margin: 0 0 20px;
+  display: flex; flex-direction: column; gap: 9px; flex: 1;
+}
+.bil-plan-features li {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px; line-height: 1.5; color: var(--text-secondary, #4a5573);
+}
+.bil-plan-features svg {
+  width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px;
+  color: #16a34a; stroke-width: 2.5;
+}
+
+.bil-plan-action { margin-top: auto; }
+
+.bil-footnote {
+  margin-top: 20px; font-size: 12.5px; color: var(--text-muted);
+  text-align: center; line-height: 1.7;
+}
+.bil-footnote a { color: var(--primary); font-weight: 600; }
+
+/* ── Enquiry modal ────────────────────────────────────── */
+.bil-modal-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(10, 18, 32, .5);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 48px 16px; overflow-y: auto;
+  animation: bil-fade .12s ease;
+}
+@keyframes bil-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.bil-modal {
+  width: 100%; max-width: 560px;
+  background: var(--bg-card, #fff);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 24px 70px rgba(10, 18, 32, .32);
+  animation: bil-rise .16s ease;
+}
+@keyframes bil-rise { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: none } }
+
+.bil-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border, #e7ebf3);
+}
+.bil-modal-head h3 { margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary); }
+.bil-modal-x {
+  background: none; border: none; cursor: pointer;
+  font-size: 26px; line-height: 1; color: var(--text-muted); padding: 0 4px; border-radius: 6px;
+}
+.bil-modal-x:hover { color: var(--text-primary); background: var(--hover-bg, #f3f5f9); }
+
+.bil-modal-body { padding: 20px 24px; }
+.bil-modal-lead { margin: 0 0 16px; font-size: 13.5px; color: var(--text-secondary, #64708a); line-height: 1.6; }
+.bil-modal-foot {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 16px 24px; border-top: 1px solid var(--border, #e7ebf3);
+}
+
+/* Unpaid plan chosen at signup. Sits above the plan cards as a two-part row:
+   the explanation, then the two ways out of it. */
+.bil-pending {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.bil-pending p { margin: 4px 0 0; font-size: 13px; line-height: 1.55; font-weight: 400; }
+.bil-pending-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .bil-plans { grid-template-columns: 1fr; }
+  .bil-pending-actions { width: 100%; }
+}

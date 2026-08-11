@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
-function fmtAmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }); }
+import { fmtAmt } from './saFormat.js';
 function fmtN(n)   { return Number(n || 0).toLocaleString(); }
 
 const AVATAR_COLORS = ['#3b82f6','#10b981','#7c3aed','#d63a17','#0891b2','#f59e0b','#ec4899'];
@@ -128,8 +128,8 @@ export default function SAAnalytics() {
                         <span className="sa-company-name">{c.client_name}</span>
                       </div>
                     </td>
-                    <td style={{ fontSize:12, color:'#6b7280' }}>{c.company_name}</td>
-                    <td className="td-amt">{fmtAmt(c.total_revenue)}</td>
+                    <td style={{ fontSize:12, color:'#6b7280' }}>{c.tenant_name}</td>
+                    <td className="td-amt">{fmtAmt(c.total_value, c.currency)}</td>
                   </tr>
                 ))}
               </tbody>

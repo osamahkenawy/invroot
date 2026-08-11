@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeClosed, Check, Building, Mail, Lock, Phone, NavArrowRight, NavArrowLeft, Page } from 'iconoir-react';
+import { Eye, EyeClosed, Check, Building, Mail, Lock, NavArrowRight, NavArrowLeft } from 'iconoir-react';
 import api from '../lib/api.js';
+import PhoneInput, { stripDialOnly, parsePhone } from '../components/PhoneInput.jsx';
+import { COUNTRIES, flag } from '../data/countries.js';
 import './LoginPage.css';
 import './SignupPage.css';
 
@@ -19,53 +21,52 @@ function pwStrength(pw) {
 const STRENGTH_LABELS = ['', 'Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
 const STRENGTH_COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
 
-const PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 'Free',
-    sub: 'Forever free',
-    features: ['Up to 10 invoices / month', '1 user', 'PDF download', 'Email support'],
-    highlight: false,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '$19',
-    sub: 'per month',
-    features: ['Unlimited invoices', '5 users', 'Custom branding', 'Receipts & payments', 'Priority support'],
-    highlight: true,
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    price: '$49',
-    sub: 'per month',
-    features: ['Everything in Pro', 'Unlimited users', 'API access', 'Webhooks', 'Dedicated support'],
-    highlight: false,
-  },
-];
+/* Plans are fetched from GET /api/public/plans rather than declared here.
+   The list that used to live in this file had drifted from reality: it offered
+   "Starter — forever free, up to 10 invoices / month" when that plan is
+   AED 69/month, plus "Pro" and "Business" tiers the product has never had. The
+   server derives them from the same config that enforces the limits, so the
+   page cannot promise something the product won't honour. */
 
-const LEFT_PANELS = [
-  {
-    tag: 'Step 1 of 3',
-    heading: 'Your business,\nyour brand.',
-    body: 'Set up your workspace in minutes. INVROOT adapts to your language, currency, and workflow.',
-    bullets: ['Arabic & English UI', 'Multi-currency support', 'VAT-ready invoices'],
-  },
-  {
-    tag: 'Step 2 of 3',
-    heading: 'Secure by\ndesign.',
-    body: 'Your financial data is encrypted at rest and in transit. Role-based access keeps your team in check.',
-    bullets: ['Bank-level encryption', 'Role-based permissions', 'Audit log on every action'],
-  },
-  {
-    tag: 'Step 3 of 3',
-    heading: 'Pick a plan\nthat fits.',
-    body: 'Start free, scale when ready. No credit card required. Cancel any time.',
-    bullets: ['14-day free trial on paid plans', 'No hidden fees', 'Switch plans any time'],
-  },
-];
+const LEFT_PANELS = {
+  en: [
+    { tag: 'Step 1 of 3', heading: 'Your business,\nyour brand.',
+      body: 'Set up your workspace in minutes. INVROOT adapts to your language, currency, and workflow.',
+      bullets: ['Arabic & English UI', 'Multi-currency support', 'VAT-ready invoices'] },
+    { tag: 'Step 2 of 3', heading: 'Secure by\ndesign.',
+      body: 'Your financial data is encrypted at rest and in transit. Role-based access keeps your team in check.',
+      bullets: ['Bank-level encryption', 'Role-based permissions', 'Audit log on every action'] },
+    { tag: 'Step 3 of 3', heading: 'Pick a plan\nthat fits.',
+      body: 'Start free, upgrade when you are ready. No card needed to begin.',
+      bullets: ['No card required to start', 'No hidden fees', 'Change or cancel any time'] },
+  ],
+  ar: [
+    { tag: 'الخطوة ١ من ٣', heading: 'شركتك،\nوهويتك.',
+      body: 'جهّز مساحة عملك في دقائق. إنفروت يتكيّف مع لغتك وعملتك وطريقة عملك.',
+      bullets: ['واجهة بالعربية والإنجليزية', 'دعم عملات متعددة', 'فواتير جاهزة لضريبة القيمة المضافة'] },
+    { tag: 'الخطوة ٢ من ٣', heading: 'الأمان\nمن الأساس.',
+      body: 'بياناتك المالية مشفّرة أثناء التخزين والنقل، وصلاحيات الأدوار تُبقي فريقك تحت السيطرة.',
+      bullets: ['تشفير بمستوى البنوك', 'صلاحيات حسب الدور', 'سجل تدقيق لكل إجراء'] },
+    { tag: 'الخطوة ٣ من ٣', heading: 'اختر الخطة\nالمناسبة.',
+      body: 'ابدأ مجاناً وترقّ عندما تكون جاهزاً. لا حاجة لبطاقة للبدء.',
+      bullets: ['لا تحتاج بطاقة للبدء', 'بدون رسوم خفية', 'غيّر أو ألغِ في أي وقت'] },
+  ],
+};
+
+/* Best guess at the visitor's country, used only to show an indicative local
+   price. The server re-derives it from an edge geo header where one exists, and
+   the dial code the person picks for their phone overrides this. */
+function guessCountry() {
+  try {
+    const region = new Intl.Locale(navigator.language).region;
+    if (region) return region;
+  } catch { /* older browsers */ }
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const TZ = { 'Asia/Dubai':'AE','Asia/Riyadh':'SA','Africa/Cairo':'EG','Asia/Kuwait':'KW',
+               'Asia/Qatar':'QA','Asia/Bahrain':'BH','Asia/Muscat':'OM','Asia/Amman':'JO',
+               'Asia/Beirut':'LB','Asia/Baghdad':'IQ','Asia/Karachi':'PK','Asia/Kolkata':'IN' };
+  return TZ[tz] || null;
+}
 
 export default function SignupPage() {
   const { t, i18n } = useTranslation();
@@ -73,16 +74,63 @@ export default function SignupPage() {
   const isRTL       = i18n.language === 'ar';
 
   const [step,    setStep]    = useState(0);           // 0 = biz, 1 = creds, 2 = plan
-  const [form,    setForm]    = useState({ business_name: '', email: '', phone: '', password: '', confirm: '', plan: 'starter' });
+  const [form,    setForm]    = useState({ business_name: '', email: '', phone: '', password: '', confirm: '', plan: 'trial' });
+
+  /* Plans come from the server so this page can't advertise a tier the product
+     doesn't honour. `country` only affects the indicative local price shown
+     beside the real one — the charge is always in the plan's own currency. */
+  const [plans,      setPlans]      = useState([]);
+  const [plansState, setPlansState] = useState('loading');   // loading | ready | error
+  const [pricing,    setPricing]    = useState({ country: null, local_currency: null });
+  const [country,    setCountry]    = useState(() => guessCountry());
   const [showPw,  setShowPw]  = useState(false);
   const [showCPw, setShowCPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState('');   // paid choice, not yet paid
 
   const set = (k) => (e) => { setForm(f => ({ ...f, [k]: e.target.value })); setError(''); };
 
+  /* The dial code someone picks for their phone is a better signal than the
+     browser locale — an expat in Dubai often has an en-GB browser. */
+  useEffect(() => {
+    const parsed = parsePhone(form.phone);
+    if (parsed?.country?.code && parsed.country.code !== country) setCountry(parsed.country.code);
+  }, [form.phone]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false;
+    setPlansState('loading');
+    const qs = new URLSearchParams({ lang: i18n.language === 'ar' ? 'ar' : 'en' });
+    if (country) qs.set('country', country);
+    api.get(`/public/plans?${qs}`)
+      .then(res => {
+        if (cancelled) return;
+        if (res?.success) {
+          setPlans(res.data.plans || []);
+          setPricing({ country: res.data.country, local_currency: res.data.local_currency });
+          setPlansState('ready');
+          // Keep the selection valid if the list changed under us.
+          setForm(f => (res.data.selectable?.includes(f.plan) ? f : { ...f, plan: 'trial' }));
+        } else setPlansState('error');
+      })
+      .catch(() => { if (!cancelled) setPlansState('error'); });
+    return () => { cancelled = true; };
+  }, [country, i18n.language]);
+
   const strength = useMemo(() => pwStrength(form.password), [form.password]);
+
+  /* Country names in the reader's language. Intl.DisplayNames does this from
+     data the browser already ships, which beats maintaining 189 translations
+     by hand and getting them subtly wrong. Falls back to the English name. */
+  const countryOptions = useMemo(() => {
+    let display = null;
+    try { display = new Intl.DisplayNames([isRTL ? 'ar' : 'en'], { type: 'region' }); } catch { /* older browsers */ }
+    return COUNTRIES
+      .map(c => ({ code: c.code, name: (display?.of(c.code)) || c.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, isRTL ? 'ar' : 'en'));
+  }, [isRTL]);
 
   /* ── step validators ─────────────────────────────────── */
   const canNext0 = form.business_name.trim().length >= 2;
@@ -100,43 +148,93 @@ export default function SignupPage() {
       const res = await api.post('/auth/register', {
         business_name: form.business_name,
         email: form.email,
-        phone: form.phone,
+        phone: stripDialOnly(form.phone),
         password: form.password,
         lang: i18n.language,
         plan: form.plan,
+        country,          // sets the new workspace's currency
+
       });
-      if (res.success) { setSuccess(true); }
+      /* The server decides this, not the form: a paid choice is recorded as an
+         intent and grants nothing, so it reports back whether money is still
+         owed. Trusting `form.plan` here would let the success screen promise a
+         plan the server declined to give. */
+      if (res.success) { setPendingPlan(res.data?.pending_plan || ''); setSuccess(true); }
       else { setError(res.message || 'Registration failed'); }
-    } catch { setError('Network error. Please try again.'); }
+    } catch { setError(t('auth.network_error')); }
     finally { setLoading(false); }
   };
 
   /* ── success screen ──────────────────────────────────── */
   if (success) {
     return (
-      <div className="su-root">
-        <div className="su-success">
-          <div className="su-success-icon">
+      <div className="su-root su-done-root">
+        <div className="su-done-card">
+          <img src="/logos/invroot-600_200-colored-logo.png" alt="INVROOT" className="su-done-logo" />
+
+          <div className="su-done-badge">
+            <span className="su-done-ring" />
+            <span className="su-done-ring su-done-ring--2" />
             <Check strokeWidth={3} />
           </div>
-          <h2>{isRTL ? 'تم إنشاء حسابك!' : 'Account created!'}</h2>
-          <p>{t('auth.verify_email_sent')}</p>
-          <Link to="/login" className="btn btn-primary btn-full">{t('auth.login')}</Link>
+
+          <h2 className="su-done-title">
+            {t(pendingPlan ? 'auth.created_pay_title' : 'auth.created_title')}
+          </h2>
+          <p className="su-done-lead">
+            {t(pendingPlan ? 'auth.created_pay_lead' : 'auth.created_lead')}
+          </p>
+          <div className="su-done-email">{form.email}</div>
+
+          {/* "Send your first invoice" is the wrong third step when a paid plan
+              was chosen and not yet paid for — it skips straight past the card
+              and told people they were all set on a plan they don't have. */}
+          <ol className="su-done-steps">
+            {[
+              ['created_step_verify',  'created_step_verify_sub'],
+              ['created_step_signin',  'created_step_signin_sub'],
+              pendingPlan
+                ? ['created_step_pay',     'created_step_pay_sub']
+                : ['created_step_invoice', 'created_step_invoice_sub'],
+            ].map(([title, sub], i) => (
+              <li key={title} className="su-done-step">
+                <span className="su-done-step-num">{i + 1}</span>
+                <div>
+                  <div className="su-done-step-title">{t(`auth.${title}`)}</div>
+                  <div className="su-done-step-sub">{t(`auth.${sub}`)}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <Link to="/login" className="su-done-cta">{t('auth.login')}</Link>
+          <p className="su-done-spam">{t('auth.created_spam')}</p>
         </div>
       </div>
     );
   }
 
-  const panel = LEFT_PANELS[step];
+  const panel = (LEFT_PANELS[isRTL ? 'ar' : 'en'] || LEFT_PANELS.en)[step];
 
   return (
     <div className={`su-root ${isRTL ? 'rtl' : ''}`}>
       {/* ── Left decorative panel ────────────────────── */}
       <div className="su-left">
+        {/* One layer per step, cross-faded. Rendering all three keeps them
+            decoded and warm so advancing a step never flashes. */}
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            className={`su-left-art${i === step ? ' is-active' : ''}`}
+            style={{ backgroundImage: `url(/signup/register-bg-0${i + 1}.webp)` }}
+            aria-hidden="true"
+          />
+        ))}
+        <div className="su-left-scrim" aria-hidden="true" />
+
         <div className="su-left-inner">
           <div className="su-brand">
-            <Page className="su-brand-icon" />
-            <span>INVROOT</span>
+            <img src="/logos/invroot-sidebar-logo-600-200-white-logo.png" alt="INVROOT" className="su-brand-logo" />
           </div>
 
           <div className="su-panel-text">
@@ -209,15 +307,12 @@ export default function SignupPage() {
 
               <div className="su-field">
                 <label>{isRTL ? 'رقم الهاتف' : 'Phone number'} <span className="su-optional">({isRTL ? 'اختياري' : 'optional'})</span></label>
-                <div className="su-input-wrap">
-                  <Phone className="su-input-icon" />
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={set('phone')}
-                    placeholder="+966 5x xxx xxxx"
-                  />
-                </div>
+                <PhoneInput
+                  value={form.phone}
+                  onChange={val => setForm(f => ({ ...f, phone: val }))}
+                  defaultCountry={isRTL ? 'SA' : 'US'}
+                  placeholder="5x xxx xxxx"
+                />
               </div>
 
               <div className="su-plan-mini">
@@ -263,7 +358,7 @@ export default function SignupPage() {
                     type={showPw ? 'text' : 'password'}
                     value={form.password}
                     onChange={set('password')}
-                    placeholder="Min. 8 characters"
+                    placeholder={t('common.min_8_chars')}
                     autoComplete="new-password"
                   />
                   <button type="button" className="su-eye-btn" onClick={() => setShowPw(v => !v)}>
@@ -292,7 +387,7 @@ export default function SignupPage() {
                     type={showCPw ? 'text' : 'password'}
                     value={form.confirm}
                     onChange={set('confirm')}
-                    placeholder="Repeat password"
+                    placeholder={t('common.repeat_password')}
                     autoComplete="new-password"
                   />
                   <button type="button" className="su-eye-btn" onClick={() => setShowCPw(v => !v)}>
@@ -327,31 +422,107 @@ export default function SignupPage() {
 
               {error && <div className="alert alert-error">{error}</div>}
 
-              <div className="su-plans">
-                {PLANS.map(plan => (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    className={`su-plan-card ${form.plan === plan.id ? 'selected' : ''} ${plan.highlight ? 'popular' : ''}`}
-                    onClick={() => setForm(f => ({ ...f, plan: plan.id }))}
-                  >
-                    {plan.highlight && <span className="su-popular-tag">{isRTL ? 'الأكثر طلباً' : 'Most popular'}</span>}
-                    <div className="su-plan-top">
-                      <div>
-                        <div className="su-plan-name">{plan.name}</div>
-                        <div className="su-plan-sub">{plan.sub}</div>
-                      </div>
-                      <div className="su-plan-price">{plan.price}</div>
-                    </div>
-                    <ul className="su-plan-features">
-                      {plan.features.map(f => (
-                        <li key={f}><Check className="su-feat-check" />{f}</li>
+              {plansState === 'loading' && (
+                <div className="su-plans-loading">{isRTL ? 'جارٍ تحميل الخطط…' : 'Loading plans…'}</div>
+              )}
+
+              {plansState === 'error' && (
+                <div className="alert alert-error">
+                  {isRTL
+                    ? 'تعذّر تحميل الخطط. تحقق من اتصالك وحاول مرة أخرى.'
+                    : "Couldn't load the plans. Check your connection and try again."}
+                </div>
+              )}
+
+              {plansState === 'ready' && (
+                <>
+                  {/* Where prices are shown for. Auto-detected, but the guess is
+                      only ever a guess — a browser set to en-GB in Cairo would
+                      otherwise be quoted in pounds with no way to correct it.
+                      This does not change what is charged, only what is shown. */}
+                  <div className="su-currency-row">
+                    <label htmlFor="su-country">{isRTL ? 'عرض الأسعار لـ' : 'Show prices for'}</label>
+                    <select
+                      id="su-country"
+                      value={country || ''}
+                      onChange={(e) => setCountry(e.target.value || null)}
+                    >
+                      {!country && <option value="">{isRTL ? 'اختر الدولة' : 'Select country'}</option>}
+                      {countryOptions.map(c => (
+                        <option key={c.code} value={c.code}>{flag(c.code)} {c.name}</option>
                       ))}
-                    </ul>
-                    {form.plan === plan.id && <span className="su-plan-selected-ring" />}
-                  </button>
-                ))}
-              </div>
+                    </select>
+                    {pricing.local_currency && (
+                      <span className="su-currency-tag">{pricing.local_currency}</span>
+                    )}
+                  </div>
+
+                  <div className="su-plans">
+                    {plans.map(plan => {
+                      const selected = form.plan === plan.id;
+                      /* Sales-led tiers have no price and nothing to select —
+                         picking one here would create a workspace on a plan
+                         nobody has agreed terms for. */
+                      const selectable = !plan.sales_led;
+                      return (
+                        <button
+                          key={plan.id}
+                          type="button"
+                          className={`su-plan-card ${selected ? 'selected' : ''} ${plan.recommended ? 'popular' : ''} ${selectable ? '' : 'su-plan-card--contact'}`}
+                          onClick={() => selectable && setForm(f => ({ ...f, plan: plan.id }))}
+                          aria-pressed={selectable ? selected : undefined}
+                        >
+                          {plan.recommended && (
+                            <span className="su-popular-tag">{isRTL ? 'الأكثر طلباً' : 'Most popular'}</span>
+                          )}
+                          <div className="su-plan-top">
+                            <div>
+                              <div className="su-plan-name">{plan.name}</div>
+                              <div className="su-plan-sub">{plan.tagline}</div>
+                            </div>
+                            <div className="su-plan-price-wrap">
+                              <div className="su-plan-price">{plan.display}</div>
+                              {!plan.free && !plan.sales_led && (
+                                <div className="su-plan-per">{isRTL ? 'شهرياً' : 'per month'}</div>
+                              )}
+                              {/* Indicative only — the charge is in billed_currency. */}
+                              {plan.local && (
+                                <div className="su-plan-local" title={isRTL
+                                  ? `سعر تقريبي محوّل من ${plan.billed_currency}`
+                                  : `Approximate, converted from ${plan.billed_currency}`}>
+                                  ≈ {plan.local.display}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <ul className="su-plan-features">
+                            {plan.features.map(f => (
+                              <li key={f}><Check className="su-feat-check" />{f}</li>
+                            ))}
+                          </ul>
+                          {plan.sales_led && (
+                            <div className="su-plan-contact">
+                              {isRTL ? 'تواصل معنا: ' : 'Talk to us: '}
+                              <a href={`mailto:${plan.contact}`} onClick={e => e.stopPropagation()}>{plan.contact}</a>
+                            </div>
+                          )}
+                          {selected && <span className="su-plan-selected-ring" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Say plainly what will be charged and in which currency, so
+                      the converted figure above can't be mistaken for the bill. */}
+                  {plans.some(p => p.local) && (
+                    <p className="su-price-note">
+                      {isRTL
+                        ? `المبالغ المحلية تقريبية للاسترشاد فقط. الفوترة تتم بالدرهم الإماراتي (AED)، وقد يطبّق مصرفك سعر صرف مختلفاً.`
+                        : `Local amounts are approximate, for guidance only. Billing is in AED — your bank may apply a different rate.`}
+                    </p>
+                  )}
+                </>
+              )}
 
               <p className="su-terms">
                 {isRTL

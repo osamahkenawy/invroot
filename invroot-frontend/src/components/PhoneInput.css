@@ -1,0 +1,158 @@
+/* ── Phone input with country dial-code picker ─────────────
+   Sizing is token-driven so the control can match whichever
+   form it sits in (see the .settings-form override below).   */
+.ph-wrap {
+  --ph-pad-y:  11px;
+  --ph-pad-x:  14px;
+  --ph-radius: 10px;
+  --ph-border: 1.5px;
+  --ph-font:   14px;
+
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  background: var(--bg-card);
+  border: var(--ph-border) solid var(--border);
+  border-radius: var(--ph-radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+/* The two halves read as a single field, so focus lights up the whole thing. */
+.ph-wrap:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1);
+}
+
+/* ── Country trigger ───────────────────────────────────── */
+.ph-country-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: var(--ph-pad-y) 10px var(--ph-pad-y) var(--ph-pad-x);
+  background: none;
+  border: none;
+  border-inline-end: 1px solid var(--border);
+  border-start-start-radius: calc(var(--ph-radius) - 1px);
+  border-end-start-radius: calc(var(--ph-radius) - 1px);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ph-country-btn:hover:not(:disabled),
+.ph-country-btn.open { background: var(--hover-bg, #f1f4f8); }
+.ph-country-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+.ph-country-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.ph-flag  { font-size: 17px; line-height: 1; flex-shrink: 0; }
+.ph-dial  { font-size: var(--ph-font); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ph-arrow { width: 13px; height: 13px; color: var(--text-muted); transition: transform 0.2s; }
+.ph-country-btn.open .ph-arrow { transform: rotate(180deg); }
+
+/* ── Number field ──────────────────────────────────────── */
+.ph-number-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--ph-pad-y) var(--ph-pad-x);
+  border: none;
+  outline: none;
+  background: none;
+  border-radius: 0 var(--ph-radius) var(--ph-radius) 0;
+  font-family: var(--font);
+  font-size: var(--ph-font);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+[dir="rtl"] .ph-number-input { border-radius: var(--ph-radius) 0 0 var(--ph-radius); }
+.ph-number-input:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ── Dropdown ──────────────────────────────────────────── */
+.ph-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-start: 0;
+  z-index: 600;
+  width: 320px;
+  max-width: min(92vw, 420px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(13, 27, 42, 0.16);
+  overflow: hidden;
+  animation: ph-pop 0.14s ease-out;
+}
+@keyframes ph-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-dropdown { animation: none; }
+  .ph-arrow { transition: none; }
+}
+
+.ph-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+  color: var(--text-muted);
+}
+.ph-search {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: var(--font);
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.ph-list {
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+}
+.ph-list::-webkit-scrollbar { width: 5px; }
+.ph-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.ph-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ph-option:hover { background: var(--hover-bg, #f1f4f8); }
+.ph-option.active { background: var(--gold-wash, #FBF3DC); }
+.ph-option .ph-flag { font-size: 19px; }
+.ph-oname {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ph-odial {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ph-option.active .ph-odial { color: var(--secondary); }
+.ph-check { width: 15px; height: 15px; color: var(--secondary); flex-shrink: 0; }
+
+.ph-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}

@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bank, Plus, EditPencil, Trash, ArrowUp, ArrowDown, Coins, NavArrowRight } from 'iconoir-react';
 import api from '../lib/api';
+import { useToastContext } from '../context/ToastContext.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
+import Reconcile from '../components/banking/Reconcile.jsx';
 import './Banking.css';
 
 const fmtAmt = (v, cur = 'SAR') =>
@@ -13,6 +16,9 @@ const emptyAccForm = { name: '', account_number: '', bank_name: '', currency: 'S
 const emptyTxForm  = { type: 'credit', amount: '', description: '', reference: '', transaction_date: '' };
 
 export default function Banking() {
+  const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [accounts, setAccounts]   = useState([]);
   const [totalBal, setTotalBal]   = useState(0);
   const [loading, setLoading]     = useState(true);
@@ -29,23 +35,30 @@ export default function Banking() {
   const loadAccounts = useCallback(async () => {
     setLoading(true);
     try {
+      /* `res.data`, not `res.data.data`. The api client returns the parsed body
+         already; the extra hop is an axios-ism, and it silently resolved to
+         undefined — so the accounts list rendered empty and the total read
+         AED 0.00 no matter what was actually in the bank. */
       const res = await api.get('/banking/accounts');
-      setAccounts(res.data.data || []);
-      setTotalBal(res.data.totalBalance || 0);
+      setAccounts(res.data || []);
+      setTotalBal(res.totalBalance || 0);
     } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
-  const openCreate = () => { setEditAcc(null); setAccForm(emptyAccForm); setShowAccModal(true); };
+  const openCreate = () => { setEditAcc(null); setAccForm({ ...emptyAccForm, currency: tenant?.currency || 'SAR' }); setShowAccModal(true); };
   const openEdit   = (a) => { setEditAcc(a); setAccForm({ ...a }); setShowAccModal(true); };
 
   const saveAccount = async () => {
     if (!accForm.name) return;
     setSaving(true);
     try {
-      if (editAcc) await api.put(`/banking/accounts/${editAcc.id}`, accForm);
-      else         await api.post('/banking/accounts', accForm);
+      const res = editAcc
+        ? await api.put(`/banking/accounts/${editAcc.id}`, accForm)
+        : await api.post('/banking/accounts', accForm);
+      if (res?.success === false) { showToast(res.message || t('common.save_failed'), 'error'); return; }
+      showToast(t(editAcc ? 'common.updated_success' : 'common.created_success'));
       setShowAccModal(false);
       loadAccounts();
     } finally { setSaving(false); }
@@ -53,14 +66,16 @@ export default function Banking() {
 
   const deleteAccount = async (id) => {
     if (!window.confirm('Delete this account?')) return;
-    await api.delete(`/banking/accounts/${id}`);
+    const res = await api.delete(`/banking/accounts/${id}`);
+    if (res?.success === false) return showToast(res.message || t('common.delete_failed'), 'error');
+    showToast(t('common.deleted_success'));
     loadAccounts();
   };
 
   const openTxList = async (acc) => {
     setActiveAcc(acc);
     const res = await api.get(`/banking/accounts/${acc.id}/transactions`);
-    setTxs(res.data.data || []);
+    setTxs(res.data || []);
     setShowTxList(true);
   };
 
@@ -74,14 +89,18 @@ export default function Banking() {
     if (!txForm.amount) return;
     setSaving(true);
     try {
-      await api.post(`/banking/accounts/${activeAcc.id}/transactions`, txForm);
+      const res = await api.post(`/banking/accounts/${activeAcc.id}/transactions`, txForm);
+      if (res?.success === false) { showToast(res.message || t('common.save_failed'), 'error'); return; }
+      showToast(t('common.created_success'));
       setShowTxModal(false);
       loadAccounts();
       if (showTxList) openTxList(activeAcc);
     } finally { setSaving(false); }
   };
 
-  const typeColor = (t) => (t === 'checking' ? '#3b82f6' : t === 'savings' ? '#16a34a' : t === 'credit' ? '#d97706' : '#7c3aed');
+  /* `type`, not `t` — `t` is the translation function in this scope, and
+     shadowing it is how Toast.jsx crashed the app. */
+  const typeColor = (type) => (type === 'checking' ? '#3b82f6' : type === 'savings' ? '#16a34a' : type === 'credit' ? '#d97706' : '#7c3aed');
 
   return (
     <div className="banking-page">
@@ -89,10 +108,10 @@ export default function Banking() {
       <div className="bnk-summary">
         <div className="bnk-summary-icon"><Bank /></div>
         <div>
-          <div className="bnk-summary-label">Total Balance Across All Accounts</div>
-          <div className="bnk-summary-value">{fmtAmt(totalBal)}</div>
+          <div className="bnk-summary-label">{t('banking.total_balance')}</div>
+          <div className="bnk-summary-value">{fmtAmt(totalBal, tenant?.currency)}</div>
         </div>
-        <button className="bnk-add-btn" onClick={openCreate}><Plus /> Add Account</button>
+        <button className="bnk-add-btn" onClick={openCreate}><Plus /> {t('banking.add_account')}</button>
       </div>
 
       {/* Accounts Grid */}
@@ -101,8 +120,8 @@ export default function Banking() {
       ) : accounts.length === 0 ? (
         <div className="bnk-empty">
           <Bank width={48} height={48} />
-          <p>No bank accounts added yet</p>
-          <button onClick={openCreate}>Add your first account</button>
+          <p>{t('banking.none_yet')}</p>
+          <button onClick={openCreate}>{t('banking.add_first')}</button>
         </div>
       ) : (
         <div className="bnk-grid">
@@ -119,10 +138,10 @@ export default function Banking() {
               <div className="bnk-card-balance">{fmtAmt(acc.balance, acc.currency)}</div>
               <div className="bnk-card-actions">
                 <button className="bnk-act" onClick={() => openTxList(acc)}>
-                  <NavArrowRight width={14} height={14} /> Transactions
+                  <NavArrowRight width={14} height={14} /> {t('banking.transactions')}
                 </button>
                 <button className="bnk-act primary" onClick={() => openTxModal(acc)}>
-                  <Plus width={14} height={14} /> Add Tx
+                  <Plus width={14} height={14} /> {t('banking.add_tx')}
                 </button>
                 <button className="bnk-act-icon" onClick={() => openEdit(acc)}><EditPencil /></button>
                 <button className="bnk-act-icon red" onClick={() => deleteAccount(acc.id)}><Trash /></button>
@@ -131,6 +150,17 @@ export default function Banking() {
           ))}
         </div>
       )}
+
+      {/* Reconciliation is a TASK you perform against the accounts, so it sits
+          below them. Above, it buried the accounts — the actual subject of this
+          page — under as many as 200 payment rows. Renders nothing when there
+          is nothing outstanding. */}
+      <Reconcile
+        currency={tenant?.currency}
+        hasAccounts={accounts.length > 0}
+        onAddAccount={openCreate}
+        onChanged={loadAccounts}
+      />
 
       {/* Account Modal */}
       {showAccModal && (
@@ -143,43 +173,43 @@ export default function Banking() {
             <div className="bnk-modal-body">
               <div className="bnk-form-grid">
                 <div className="bnk-form-group span2">
-                  <label>Account Name *</label>
-                  <input value={accForm.name} onChange={e => setAccForm(f => ({...f, name: e.target.value}))} placeholder="e.g. Main Checking" />
+                  <label>{t('banking.account_name')} *</label>
+                  <input value={accForm.name} onChange={e => setAccForm(f => ({...f, name: e.target.value}))} placeholder={t('banking.ph_account')} />
                 </div>
                 <div className="bnk-form-group">
-                  <label>Bank Name</label>
-                  <input value={accForm.bank_name || ''} onChange={e => setAccForm(f => ({...f, bank_name: e.target.value}))} placeholder="Bank name" />
+                  <label>{t('banking.bank_name')}</label>
+                  <input value={accForm.bank_name || ''} onChange={e => setAccForm(f => ({...f, bank_name: e.target.value}))} placeholder={t('banking.ph_bank')} />
                 </div>
                 <div className="bnk-form-group">
-                  <label>Account Number</label>
-                  <input value={accForm.account_number || ''} onChange={e => setAccForm(f => ({...f, account_number: e.target.value}))} placeholder="IBAN / account number" />
+                  <label>{t('banking.account_number')}</label>
+                  <input value={accForm.account_number || ''} onChange={e => setAccForm(f => ({...f, account_number: e.target.value}))} placeholder={t('banking.ph_iban')} />
                 </div>
                 <div className="bnk-form-group">
-                  <label>Account Type</label>
+                  <label>{t('banking.account_type')}</label>
                   <select value={accForm.account_type} onChange={e => setAccForm(f => ({...f, account_type: e.target.value}))}>
-                    {ACCOUNT_TYPES.map(t => <option key={t}>{t}</option>)}
+                    {ACCOUNT_TYPES.map(type => <option key={type}>{type}</option>)}
                   </select>
                 </div>
                 <div className="bnk-form-group">
-                  <label>Currency</label>
+                  <label>{t('common.currency')}</label>
                   <select value={accForm.currency} onChange={e => setAccForm(f => ({...f, currency: e.target.value}))}>
                     {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="bnk-form-group span2">
-                  <label>Opening Balance</label>
+                  <label>{t('banking.opening_balance')}</label>
                   <input type="number" min="0" step="0.01" value={accForm.balance || ''} onChange={e => setAccForm(f => ({...f, balance: e.target.value}))} placeholder="0.00" />
                 </div>
                 <div className="bnk-form-group span2">
-                  <label>Notes</label>
+                  <label>{t('common.notes')}</label>
                   <textarea rows={2} value={accForm.notes || ''} onChange={e => setAccForm(f => ({...f, notes: e.target.value}))} />
                 </div>
               </div>
             </div>
             <div className="bnk-modal-footer">
-              <button className="bnk-btn-cancel" onClick={() => setShowAccModal(false)}>Cancel</button>
+              <button className="bnk-btn-cancel" onClick={() => setShowAccModal(false)}>{t('common.cancel')}</button>
               <button className="bnk-btn-save" onClick={saveAccount} disabled={saving || !accForm.name}>
-                {saving ? 'Saving…' : editAcc ? 'Save Changes' : 'Add Account'}
+                {saving ? t('common.saving') : t(editAcc ? 'banking.save_changes' : 'banking.add_account')}
               </button>
             </div>
           </div>
@@ -197,32 +227,32 @@ export default function Banking() {
             <div className="bnk-modal-body">
               <div className="bnk-form-grid">
                 <div className="bnk-form-group">
-                  <label>Type</label>
+                  <label>{t('banking.type')}</label>
                   <select value={txForm.type} onChange={e => setTxForm(f => ({...f, type: e.target.value}))}>
-                    <option value="credit">Credit (Money In)</option>
-                    <option value="debit">Debit (Money Out)</option>
+                    <option value="credit">{t('banking.credit_in')}</option>
+                    <option value="debit">{t('banking.debit_out')}</option>
                   </select>
                 </div>
                 <div className="bnk-form-group">
-                  <label>Amount *</label>
+                  <label>{t('common.amount')} *</label>
                   <input type="number" min="0" step="0.01" value={txForm.amount || ''} onChange={e => setTxForm(f => ({...f, amount: e.target.value}))} placeholder="0.00" />
                 </div>
                 <div className="bnk-form-group span2">
-                  <label>Description</label>
-                  <input value={txForm.description || ''} onChange={e => setTxForm(f => ({...f, description: e.target.value}))} placeholder="Transaction description" />
+                  <label>{t('banking.description')}</label>
+                  <input value={txForm.description || ''} onChange={e => setTxForm(f => ({...f, description: e.target.value}))} placeholder={t('banking.ph_tx_desc')} />
                 </div>
                 <div className="bnk-form-group">
-                  <label>Reference</label>
+                  <label>{t('banking.reference')}</label>
                   <input value={txForm.reference || ''} onChange={e => setTxForm(f => ({...f, reference: e.target.value}))} />
                 </div>
                 <div className="bnk-form-group">
-                  <label>Date</label>
+                  <label>{t('common.date')}</label>
                   <input type="date" value={txForm.transaction_date || ''} onChange={e => setTxForm(f => ({...f, transaction_date: e.target.value}))} />
                 </div>
               </div>
             </div>
             <div className="bnk-modal-footer">
-              <button className="bnk-btn-cancel" onClick={() => setShowTxModal(false)}>Cancel</button>
+              <button className="bnk-btn-cancel" onClick={() => setShowTxModal(false)}>{t('common.cancel')}</button>
               <button className="bnk-btn-save" onClick={saveTx} disabled={saving || !txForm.amount}>
                 {saving ? 'Saving…' : 'Add Transaction'}
               </button>
@@ -236,15 +266,15 @@ export default function Banking() {
         <div className="bnk-overlay" onClick={e => e.target === e.currentTarget && setShowTxList(false)}>
           <div className="bnk-modal wide">
             <div className="bnk-modal-header">
-              <h2>Transactions — {activeAcc?.name}</h2>
+              <h2>{t('banking.transactions')} — {activeAcc?.name}</h2>
               <button onClick={() => setShowTxList(false)}>×</button>
             </div>
             <div className="bnk-modal-body">
               {transactions.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>No transactions yet</p>
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>{t('banking.no_tx')}</p>
               ) : (
                 <table className="bnk-tx-table">
-                  <thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Type</th><th>Amount</th></tr></thead>
+                  <thead><tr><th>{t('common.date')}</th><th>{t('banking.description')}</th><th>{t('banking.reference')}</th><th>{t('banking.type')}</th><th>{t('common.amount')}</th></tr></thead>
                   <tbody>
                     {transactions.map(tx => (
                       <tr key={tx.id}>
@@ -262,8 +292,8 @@ export default function Banking() {
               )}
             </div>
             <div className="bnk-modal-footer">
-              <button className="bnk-btn-cancel" onClick={() => setShowTxList(false)}>Close</button>
-              <button className="bnk-btn-save" onClick={() => { setShowTxList(false); openTxModal(activeAcc); }}>+ Add Transaction</button>
+              <button className="bnk-btn-cancel" onClick={() => setShowTxList(false)}>{t('common.close')}</button>
+              <button className="bnk-btn-save" onClick={() => { setShowTxList(false); openTxModal(activeAcc); }}>+ {t('banking.add_transaction')}</button>
             </div>
           </div>
         </div>

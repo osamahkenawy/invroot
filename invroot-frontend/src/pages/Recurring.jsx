@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { Plus, Pause, Play, Xmark, RefreshDouble } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
 
 export default function Recurring() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [schedules, setSchedules] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [showForm,  setShowForm]  = useState(false);
@@ -18,11 +22,17 @@ export default function Recurring() {
   };
   useEffect(() => { fetch(); }, []);
 
-  const pause  = async (id) => { await api.put(`/recurring/${id}/pause`);  fetch(); };
-  const resume = async (id) => { await api.put(`/recurring/${id}/resume`); fetch(); };
-  const cancel = async (id) => {
+  const runAction = async (call, successKey) => {
+    const res = await call;
+    if (res?.success === false) return showToast(res.message || t('common.action_failed'), 'error');
+    showToast(t(successKey));
+    fetch();
+  };
+  const pause  = (id) => runAction(api.put(`/recurring/${id}/pause`),  'common.updated_success');
+  const resume = (id) => runAction(api.put(`/recurring/${id}/resume`), 'common.updated_success');
+  const cancel = (id) => {
     if (!confirm(t('recurring.confirm_cancel'))) return;
-    await api.delete(`/recurring/${id}`); fetch();
+    runAction(api.delete(`/recurring/${id}`), 'common.deleted_success');
   };
 
   const active  = schedules.filter(s => s.status === 'active').length;
@@ -53,7 +63,7 @@ export default function Recurring() {
           </div>
           <div className="stat-box">
             <div className="stat-box-label">{t('recurring.monthly_revenue')}</div>
-            <div className="stat-box-val">{fmtCurrency(monthlyRevenue)}</div>
+            <div className="stat-box-val">{fmtCurrency(monthlyRevenue, tenant?.currency)}</div>
           </div>
         </div>
       )}
@@ -135,7 +145,11 @@ export default function Recurring() {
       </div>
 
       {showForm && (
-        <RecurringFormModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); fetch(); }} />
+        <RecurringFormModal onClose={() => setShowForm(false)} onSaved={() => {
+          setShowForm(false);
+          showToast(t('common.created_success'));
+          fetch();
+        }} />
       )}
       <button className="fab" onClick={() => setShowForm(true)}><Plus /></button>
     </div>
@@ -145,12 +159,13 @@ export default function Recurring() {
 /* ── Create Recurring Schedule Modal ────────── */
 function RecurringFormModal({ onClose, onSaved }) {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
   const [clients, setClients] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [form, setForm] = useState({
-    client_id:'', frequency:'monthly', currency:'SAR', start_date:'', end_date:'', notes:'',
+    client_id:'', frequency:'monthly', currency: tenant?.currency || 'SAR', start_date:'', end_date:'', notes:'',
     discount_type:'amount', discount_value:0,
   });
   const [lines, setLines] = useState([{ description:'', quantity:1, unit_price:0, tax_rate:15 }]);
@@ -208,7 +223,7 @@ function RecurringFormModal({ onClose, onSaved }) {
               </select>
             </div>
             <div className="form-group">
-              <label>{t('invoices.currency')}</label>
+              <label>{t('common.currency')}</label>
               <select value={form.currency} onChange={setF('currency')}>
                 {['SAR','USD','EUR','AED','GBP','KWD'].map(c => <option key={c}>{c}</option>)}
               </select>
@@ -230,9 +245,9 @@ function RecurringFormModal({ onClose, onSaved }) {
             <label>{t('invoices.line_items')}</label>
             <div className="line-items-head">
               <span style={{ flex:3 }}>{t('invoices.description')}</span>
-              <span>{t('invoices.qty')}</span>
+              <span>{t('invoices.quantity')}</span>
               <span>{t('invoices.unit_price')}</span>
-              <span>{t('invoices.tax')}%</span>
+              <span>{t('invoices.tax_rate')} %</span>
               <span></span>
             </div>
             {lines.map((line,i) => (
@@ -245,19 +260,19 @@ function RecurringFormModal({ onClose, onSaved }) {
                 <button className="icon-btn danger" onClick={() => remLine(i)} disabled={lines.length===1}><Xmark /></button>
               </div>
             ))}
-            <button className="btn btn-sm" style={{ marginTop:8 }} onClick={addLine}><Plus /> {t('invoices.add_line')}</button>
+            <button className="btn btn-sm" style={{ marginTop:8 }} onClick={addLine}><Plus /> {t('invoices.add_item')}</button>
           </div>
 
           <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}>
             <div className="invoice-summary" style={{ minWidth:220 }}>
-              <div className="summary-row"><span>{t('invoices.subtotal')}</span><span>{fmtCurrency(subtotal,form.currency)}</span></div>
-              <div className="summary-row"><span>{t('invoices.tax')}</span><span>{fmtCurrency(taxAmt,form.currency)}</span></div>
+              <div className="summary-row"><span>{t('invoices.sub_total')}</span><span>{fmtCurrency(subtotal,form.currency)}</span></div>
+              <div className="summary-row"><span>{t('invoices.tax_rate')}</span><span>{fmtCurrency(taxAmt,form.currency)}</span></div>
               <div className="summary-row total-row"><span>{t('common.total')} / {t(`recurring.frequencies.${form.frequency}`,form.frequency)}</span><span>{fmtCurrency(total,form.currency)}</span></div>
             </div>
           </div>
 
           <div className="form-group" style={{ marginTop:8 }}>
-            <label>{t('invoices.notes')}</label>
+            <label>{t('common.notes')}</label>
             <textarea rows={2} value={form.notes} onChange={setF('notes')} />
           </div>
         </div>

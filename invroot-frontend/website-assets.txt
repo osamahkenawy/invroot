@@ -1,0 +1,440 @@
+===============================================================
+INVROOT — MARKETING WEBSITE & SUBSCRIPTION ASSET LIST
+===============================================================
+Everything needed to build the public landing page, show the
+product, and sell subscriptions.
+
+Companion file: brand-assets.txt  (logo, favicon, app icons)
+This file does NOT repeat those — it covers website-only assets.
+
+Reuse from brand-assets.txt on the site:
+  logo-horizontal.svg        site header (light background)
+  logo-horizontal-dark.svg   site footer / navy sections
+  favicon.* + app icons      browser tab
+  og-image.png               link previews
+
+CONVENTIONS
+  - Export every raster asset at @1x and @2x (retina).
+  - Prefer WEBP with a PNG/JPG fallback; SVG for anything vector.
+  - Landing page total weight target: under 1.5 MB on first load.
+  - Lazy-load everything below the fold.
+
+
+===============================================================
+1. PRODUCT SCREENSHOTS  (the core of "show the system")
+===============================================================
+These are the highest-value assets on the whole site — they are
+what actually sells an invoicing tool. Capture from the running
+app at 1440x900 viewport, 2x DPI, with realistic demo data
+(never lorem, never AED 0.00 — use believable amounts/clients).
+
+PRIORITY 1 — hero + primary feature blocks
+FILE                        SIZE (@2x)     SCREEN TO CAPTURE
+hero-dashboard.png          2880 x 1800    Dashboard — KPI cards, cash
+                                           flow chart, receivables/payables
+shot-invoice-builder.png    2880 x 1800    New Invoice modal — line items,
+                                           logo box, live totals
+shot-invoice-pdf.png        1600 x 2263    The generated PDF (A4 ratio),
+                                           with logo + stamp visible
+shot-invoice-list.png       2880 x 1800    Invoices list — summary cards,
+                                           aging analysis, status tabs
+shot-reports.png            2880 x 1800    Reports > Overview — KPIs +
+                                           collection rate bar
+
+PRIORITY 2 — secondary feature blocks
+FILE                        SIZE (@2x)     SCREEN TO CAPTURE
+shot-recurring.png          2880 x 1800    Recurring schedules list
+shot-aging-report.png       2880 x 1800    Reports > Aging Report table
+shot-clients.png            2880 x 1800    Clients grid view
+shot-quotes.png             2880 x 1800    Quotes list + status pipeline
+shot-payments.png           2880 x 1800    Payments / Receipts
+shot-expenses.png           2880 x 1800    Expenses with status badges
+shot-client-portal.png      2880 x 1800    Client Portal (what YOUR
+                                           customer's client sees)
+shot-settings-branding.png  2880 x 1800    Settings > Branding — proves
+                                           white-labelling
+
+PRIORITY 3 — differentiators worth their own section
+FILE                        SIZE (@2x)     SCREEN TO CAPTURE
+shot-arabic-rtl.png         2880 x 1800    Any main screen in Arabic/RTL —
+                                           this is a genuine differentiator
+                                           for the GCC market, feature it
+shot-invoice-pdf-arabic.png 1600 x 2263    Arabic invoice PDF
+shot-multicurrency.png      1600 x 1000    Currency picker / invoice in AED
+                                           vs SAR side by side
+shot-mobile.png             1170 x 2532    Any screen at iPhone width —
+                                           the app already has mobile card
+                                           layouts, show them
+
+CROPPED / DEVICE-FRAMED VARIANTS
+FILE                        SIZE (@2x)     NOTE
+frame-browser-hero.png      3000 x 1900    hero shot inside a browser chrome
+frame-laptop-hero.png       2400 x 1500    hero shot on a laptop mockup
+frame-phone-portal.png      1200 x 2400    client portal on a phone mockup
+
+
+===============================================================
+2. HERO / ATMOSPHERE ART
+===============================================================
+FILE                        SIZE           NOTE
+hero-bg-gradient.svg        vector         Navy gradient mesh, same family
+                                           as the login page left panel
+hero-bg-noise.png           400 x 400      Tileable subtle grain overlay
+                                           (keep under 20 KB)
+pattern-grid.svg            vector         Faint grid/dot pattern for
+                                           section backgrounds
+glow-gold.png               1200 x 1200    Radial gold glow, transparent —
+                                           for accenting dark sections
+divider-wave.svg            vector         Section transition shape
+
+
+===============================================================
+3. FEATURE ICONS
+===============================================================
+One icon per feature card.
+NOTE: the app already ships iconoir-react — reuse those icons on the
+site for consistency instead of commissioning a new set, unless you
+want something more illustrative.
+
+FORMAT   SVG, 24x24 and 48x48 artboards, single-colour (currentColor)
+COUNT    ~14
+
+  invoicing            recurring-billing      quotes-estimates
+  credit-notes         payments               receipts
+  expenses             banking                vat-tax
+  reports              clients                catalog
+  time-tracking        client-portal
+
+Optionally an illustrated set for the 3 hero benefits:
+FILE                        SIZE
+illus-get-paid-faster.svg   vector (600 x 400 artboard)
+illus-vat-compliant.svg     vector (600 x 400 artboard)
+illus-bilingual.svg         vector (600 x 400 artboard)
+
+
+===============================================================
+4. SOCIAL PROOF
+===============================================================
+FILE                        SIZE           NOTE
+client-logo-1..8.svg        vector         Customer logos, greyscale,
+                                           normalise to 120px tall
+testimonial-avatar-1..6.jpg 256 x 256      Square, will be masked round
+testimonial-avatar-*@2x.jpg 512 x 512
+badge-rating.svg            vector         "4.9 ★" — matches the stat
+                                           already shown on login/signup
+logo-wall.png               2400 x 400     Fallback single-image logo strip
+
+STATS ALREADY USED IN-APP (keep the site consistent with these):
+  2,400+ active businesses   |   $4.2M invoiced / month   |   4.9 ★ rating
+  ^ these appear on LoginPage.jsx and SignupPage.jsx. If they are
+    placeholders, change them everywhere at once or the site and app
+    will contradict each other.
+
+
+===============================================================
+5. SUBSCRIPTION / PRICING ASSETS
+===============================================================
+
+--- 5a. Plan presentation ---
+FILE                        SIZE           NOTE
+plan-icon-starter.svg       vector 64x64
+plan-icon-pro.svg           vector 64x64
+plan-icon-business.svg      vector 64x64
+badge-most-popular.svg      vector         "Most popular" ribbon — the
+                                           signup page already has this
+                                           treatment, match it
+badge-save-annual.svg       vector         e.g. "Save 20% annually"
+comparison-check.svg        vector 20x20   Feature-included tick
+comparison-cross.svg        vector 20x20   Feature-excluded mark
+
+--- 5b. Payment & trust ---
+FILE                        SIZE           NOTE
+pay-visa.svg                vector         Use official brand SVGs — do not
+pay-mastercard.svg          vector         redraw card marks
+pay-amex.svg                vector
+pay-mada.svg                vector         Important for Saudi market
+pay-applepay.svg            vector
+pay-stripe-badge.svg        vector         "Powered by Stripe"
+badge-ssl-secure.svg        vector
+badge-pci.svg               vector
+badge-zatca.svg             vector         Saudi e-invoicing compliance —
+                                           only use if you actually comply
+badge-gdpr.svg              vector
+icon-money-back.svg         vector 48x48   "14-day free trial / no card"
+
+--- 5c. Checkout & lifecycle screens ---
+FILE                        SIZE           NOTE
+illus-checkout-success.svg  vector         Post-payment success state
+illus-checkout-cancelled.svg vector        Payment cancelled state
+illus-trial-ending.svg      vector         In-app upgrade prompt
+illus-plan-limit.svg        vector         "You've hit your plan limit"
+                                           (plan caps already exist in
+                                            config.js — see section 8)
+
+
+===============================================================
+6. EMAIL ASSETS  (subscription + transactional)
+===============================================================
+The backend already sends: verification, password reset, invoice
+delivery, payment reminders (src/lib/email.js).
+Subscription emails still need building.
+
+FILE                        SIZE           NOTE
+email-logo.png              400 x 100      From brand-assets.txt Master 2.
+                                           PNG only — email clients do not
+                                           render SVG reliably.
+email-header-bg.png         1200 x 200     Navy banner strip
+email-icon-success.png      120 x 120      Payment received
+email-icon-warning.png      120 x 120      Payment failed / card expiring
+email-icon-invoice.png      120 x 120      Invoice delivered
+email-footer-social-*.png   64 x 64        Social icons, one per network
+
+EMAILS TO DESIGN FOR SUBSCRIPTIONS (none exist yet):
+  welcome / trial started        payment succeeded (receipt)
+  trial ending in 3 days         payment failed — card declined
+  trial ended                    card expiring soon
+  plan upgraded / downgraded      subscription cancelled
+  usage limit approaching         invoice for the subscription itself
+
+
+===============================================================
+7. SITE-WIDE / SEO / MISC
+===============================================================
+FILE                        SIZE           NOTE
+og-image-home.png           1200 x 630     Landing page link preview
+og-image-pricing.png        1200 x 630     Pricing page preview
+og-image-features.png       1200 x 630     Features page preview
+twitter-card.png            1200 x 600
+apple-touch-icon.png        180 x 180      (from brand-assets.txt)
+og-default.png              1200 x 630     Fallback for any other page
+illus-404.svg               vector         404 page
+illus-empty-blog.svg        vector         If you ship a blog/changelog
+video-poster.png            1920 x 1080    Poster frame if you add a demo
+                                           video or GIF
+demo.mp4 / demo.webm        1920 x 1080    30-60s silent product walkthrough,
+                                           autoplay-muted-loop. Keep under
+                                           5 MB or lazy-load it.
+
+
+===============================================================
+8. PAGE-BY-PAGE MANIFEST
+===============================================================
+Which images each page needs and at what size.
+  [bracketed] = already specified in sections 1-7, reuse it.
+  NEW         = specific to this page, spec given inline.
+Every raster asset: export @1x and @2x. Photos as WEBP + JPG fallback.
+
+--- 8.1  HOME / LANDING  ( / ) ---
+Navbar          [logo-horizontal.svg]                    vector
+Hero            [frame-browser-hero.png]                 3000 x 1900
+                [hero-bg-gradient.svg]                   vector
+                [glow-gold.png]                          1200 x 1200
+                [video-poster.png] + demo.mp4            1920 x 1080
+Logo strip      [client-logo-1..8.svg]                   120px tall each
+                [logo-wall.png] (fallback)               2400 x 400
+Feature blocks  [shot-invoice-builder.png]               2880 x 1800
+                [shot-reports.png]                       2880 x 1800
+                [shot-recurring.png]                     2880 x 1800
+                [shot-client-portal.png]                 2880 x 1800
+                [feature icons x14]                      SVG 24 + 48
+Differentiator  [shot-arabic-rtl.png]                    2880 x 1800
+                [shot-invoice-pdf.png]                   1600 x 2263
+Testimonials    [testimonial-avatar-1..6.jpg]            256 / 512
+                [badge-rating.svg]                       vector
+Pricing teaser  [plan-icon-*.svg]                        SVG 64
+                [badge-most-popular.svg]                 vector
+Trust row       [pay-*.svg], [badge-ssl-secure.svg]      vector
+Final CTA       [pattern-grid.svg], [glow-gold.png]      vector / 1200²
+Footer          [logo-horizontal-dark.svg]               vector
+                [email-footer-social-*.png]              64 x 64
+Link preview    [og-image-home.png]                      1200 x 630
+
+--- 8.2  FEATURES  ( /features ) ---
+Hero            NEW illus-features-hero.svg              vector 800x500
+All screenshots [shot-*.png] Priority 1 + 2 (12 files)   2880 x 1800
+Feature icons   [feature icons x14]                      SVG 24 + 48
+Comparison tbl  [comparison-check.svg / -cross.svg]      SVG 20
+Link preview    [og-image-features.png]                  1200 x 630
+
+--- 8.3  PRICING  ( /pricing ) ---
+Plan cards      [plan-icon-starter/pro/business.svg]     SVG 64
+                [badge-most-popular.svg]                 vector
+                [badge-save-annual.svg]                  vector
+Comparison tbl  [comparison-check.svg / -cross.svg]      SVG 20
+Payment row     [pay-visa/mastercard/amex/mada/          vector
+                 applepay/stripe-badge.svg]
+Trust badges    [badge-ssl-secure / -pci / -zatca /      vector
+                 -gdpr.svg]
+Guarantee       [icon-money-back.svg]                    SVG 48
+FAQ             NEW icon-faq-chevron.svg                 SVG 20
+Link preview    [og-image-pricing.png]                   1200 x 630
+
+--- 8.4  CONTACT  ( /contact ) ---
+Hero            NEW illus-contact.svg                    vector 600 x 400
+Contact methods NEW icon-email.svg                       SVG 24
+                NEW icon-phone.svg                       SVG 24
+                NEW icon-whatsapp.svg                    SVG 24
+                NEW icon-location.svg                    SVG 24
+                NEW icon-clock.svg                       SVG 24  (hours)
+Office          NEW photo-office-exterior.jpg            1600 x 1000 (@2x 3200x2000)
+                NEW map-office-static.png                1200 x 600  (@2x 2400x1200)
+                  ^ static map image, not an embedded iframe — keeps
+                    the page fast and avoids a third-party script
+Support team    NEW avatar-support-1..3.jpg              256 x 256 (@2x 512)
+                NEW badge-response-time.svg              vector
+                  ^ e.g. "We reply within 2 hours"
+Form states     NEW illus-message-sent.svg               vector 400 x 300
+                NEW illus-form-error.svg                 vector 400 x 300
+Regional flags  [flag emoji or SVG]                      SVG 24
+                  ^ if you list UAE / KSA offices separately
+Link preview    NEW og-image-contact.png                 1200 x 630
+
+--- 8.5  ABOUT  ( /about ) ---
+Hero            NEW photo-team-hero.jpg                  2400 x 1200 (@2x 4800x2400)
+Mission         NEW illus-mission.svg                    vector 600 x 400
+Team grid       NEW photo-team-member-1..N.jpg           800 x 800 (@2x 1600)
+                  ^ square, consistent crop + background
+Founders        NEW photo-founder-1..2.jpg               1200 x 1200
+Culture         NEW photo-office-1..4.jpg                1600 x 1000
+Timeline        NEW icon-milestone.svg                   SVG 32
+Stats band      [badge-rating.svg] + the 3 product stats vector
+Link preview    NEW og-image-about.png                   1200 x 630
+
+--- 8.6  BOOK A DEMO  ( /demo ) ---
+Hero            NEW illus-calendar-booking.svg           vector 600 x 400
+Proof           [shot-dashboard / hero-dashboard.png]    2880 x 1800
+Host            NEW avatar-sales-rep.jpg                 256 x 256 (@2x 512)
+Confirmation    NEW illus-demo-booked.svg                vector 400 x 300
+Link preview    NEW og-image-demo.png                    1200 x 630
+
+--- 8.7  BLOG / CHANGELOG  ( /blog ) ---
+Post cover      NEW blog-cover-<slug>.png                1200 x 630 (@2x 2400x1260)
+Default cover   NEW blog-cover-default.png               1200 x 630
+Author          NEW author-avatar-*.jpg                  256 x 256 (@2x 512)
+Category icons  NEW icon-category-*.svg                  SVG 24
+Empty state     [illus-empty-blog.svg]                   vector
+Inline images   (per article)                            max 1600 wide
+
+--- 8.8  HELP / DOCS  ( /help ) ---
+Category tiles  NEW icon-help-*.svg                      SVG 48
+Article thumbs  NEW doc-thumb-*.png                      600 x 400
+Video tutorials NEW video-thumb-*.png                    1280 x 720
+Search empty    NEW illus-search-empty.svg               vector 400 x 300
+Screenshots     reuse [shot-*.png], cropped per article  varies
+
+--- 8.9  INTEGRATIONS  ( /integrations ) ---
+Partner logos   NEW integration-logo-*.svg               120px tall, greyscale
+                  suggested: stripe, whatsapp, zatca,
+                  quickbooks, xero, zapier, slack, gmail
+Hero            NEW illus-integrations.svg               vector 800 x 500
+Link preview    NEW og-image-integrations.png            1200 x 630
+
+--- 8.10  LEGAL  ( /terms, /privacy, /refund ) ---
+Header only     [logo-horizontal.svg]                    vector
+Link preview    [og-default.png]                         1200 x 630
+                  ^ no bespoke imagery needed
+
+--- 8.11  404 / ERROR ---
+Illustration    [illus-404.svg]                          vector 600 x 400
+Link preview    [og-default.png]                         1200 x 630
+
+--- 8.12  CAREERS  ( /careers — optional ) ---
+Hero            NEW photo-office-wide.jpg                2400 x 1200
+Culture grid    NEW photo-culture-1..6.jpg               1200 x 900
+Perks icons     NEW icon-perk-*.svg                      SVG 48
+Link preview    NEW og-image-careers.png                 1200 x 630
+
+
+===============================================================
+9. GAPS TO CLOSE BEFORE YOU CAN SELL SUBSCRIPTIONS
+===============================================================
+These are code issues, not assets — but they block launch.
+Found while checking the existing Stripe setup.
+
+(a) PLAN IDS DO NOT MATCH ACROSS THE CODEBASE
+    SignupPage.jsx offers:  starter | pro      | business
+    config.js defines:      starter | professional | enterprise
+    Stripe price IDs:       starter | professional | enterprise
+    -> Choosing "Pro" at signup looks up priceIds['pro'], which is
+       undefined, and checkout fails with "Invalid plan".
+       Pick one naming scheme and use it in all three places.
+
+(b) THE POST-CHECKOUT PAGE DOES NOT EXIST
+    stripe.js redirects to /settings/billing?success=1 and
+    ?cancelled=1, but Settings has no "billing" route — the tabs are
+    company, branding, stamp, team, numbering, profile.
+    -> Build a Billing tab: current plan, usage vs limits, invoices,
+       payment method, upgrade/downgrade, cancel.
+
+(c) PLAN LIMITS ARE DEFINED BUT NEVER ENFORCED
+    config.js sets maxClients / maxInvoices / maxUsers per plan, but
+    nothing checks them when creating clients, invoices or users.
+    -> Enforce, or the paid tiers have no functional difference.
+
+(d) NO PRICING SHOWN ANYWHERE BUT SIGNUP
+    Prices ($19 / $49) are hardcoded in SignupPage.jsx only. The
+    marketing site will need the same numbers — put them in one
+    shared source so they cannot drift.
+
+(e) NO ANNUAL BILLING OPTION
+    Only monthly price IDs exist. If you want the "save 20% annually"
+    badge in section 5a, you need annual price IDs too.
+
+
+===============================================================
+10. QUICK ANSWER — EVERY WEBSITE SIZE, ONE LIST
+===============================================================
+PRODUCT SHOTS & DEVICE FRAMES
+  3000 x 1900    browser-framed hero
+  2880 x 1800    product screenshots @2x (desktop 16:10)
+  2400 x 1500    laptop-framed hero
+  1600 x 2263    invoice PDF screenshot @2x (A4 ratio)
+  1200 x 2400    phone-framed client portal
+  1170 x 2532    mobile screenshot @2x
+
+PHOTOGRAPHY  (About / Contact / Careers)
+  4800 x 2400    team hero @2x
+  2400 x 1200    team hero @1x, careers hero, static map @2x
+  3200 x 2000    office photo @2x
+  1600 x 1000    office photo @1x
+  1600 x 1600    team member portrait @2x
+  1200 x 1200    founder portrait
+  1200 x 900     culture / careers grid photo
+  1200 x 600     static map @1x
+  800 x 800      team member portrait @1x
+  512 x 512      avatar @2x (testimonial, author, support, sales)
+  256 x 256      avatar @1x
+
+SOCIAL / VIDEO / BLOG
+  1920 x 1080    demo video + poster frame
+  2400 x 1260    blog post cover @2x
+  1280 x 720     video tutorial thumbnail
+  1200 x 630     OG image — one per page (home, features, pricing,
+                 contact, about, demo, integrations, careers, default)
+  1200 x 600     Twitter card
+
+ATMOSPHERE / DECOR
+  2400 x 400     logo wall strip
+  1200 x 1200    gold radial glow
+  400 x 400      noise / grain tile
+
+EMAIL
+  1200 x 200     email header banner
+  400 x 100      email logo (PNG — clients do not render SVG)
+  120 x 120      email status icon
+
+ILLUSTRATIONS (vector artboards)
+  800 x 500      page hero illustration (features, integrations)
+  600 x 400      section illustration (contact, mission, 404, docs)
+  400 x 300      small state illustration (sent, error, empty)
+
+ICONS (vector)
+  64 x 64        plan icons, social icons
+  48 x 48        feature icons (large), help category, perks
+  32 x 32        timeline milestone
+  24 x 24        feature icons (small), contact methods, categories
+  20 x 20        comparison tick / cross, FAQ chevron
+  120px tall     client + integration partner logos (normalised)
+
+VECTOR, NO FIXED SIZE
+  all logos, trust badges, payment marks, patterns, gradients

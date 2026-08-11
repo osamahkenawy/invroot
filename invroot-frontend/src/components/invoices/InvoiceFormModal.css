@@ -2,23 +2,42 @@
    Invoice Form Sheet — Invoicely-inspired layout
 ══════════════════════════════════════════════ */
 
-/* Overlay takes full screen, centers the sheet */
+/* Full-screen workspace. An invoice is a document with a wide line-item table
+   and a totals column; squeezing it into a centred 860px card meant horizontal
+   cramping on the very screens people actually do this work on. It now takes
+   the whole viewport. */
 .inv-form-overlay {
-  align-items: flex-start !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
   padding: 0 !important;
-  background: rgba(0,0,0,.45);
+  background: #fff;
+  /* Pin to the viewport rather than the document, so the sheet cannot inherit
+     the scroll position of the page behind it. */
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
-/* The white sheet scrolls independently */
 .inv-form-sheet {
   width: 100%;
-  max-width: 860px;
-  min-height: 100vh;
+  /* Not min-height: the sheet owns the viewport, and its BODY scrolls. With
+     min-height the whole overlay grew and the sticky bar scrolled away. */
+  height: 100%;
+  max-width: none;
   background: #fff;
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
-  box-shadow: 0 0 60px rgba(0,0,0,.2);
+  margin: 0;
+  box-shadow: none;
+  /* Children must be allowed to shrink or the flex body will not scroll. */
+  min-height: 0;
+}
+
+/* The document itself stays a readable measure, centred in the wider frame —
+   full-bleed form fields spanning a 27" monitor would be worse, not better. */
+.inv-form-body > * {
+  max-width: 1180px;
+  margin-inline: auto;
 }
 
 /* ── Top bar ───────────────────────────────── */
@@ -46,6 +65,9 @@
   flex: 1;
   padding: 28px 36px 48px;
   overflow-y: auto;
+  /* Without this a flex child refuses to shrink below its content, so the
+     scrollbar lands on the page instead of inside the sheet. */
+  min-height: 0;
 }
 .inv-form-error { margin-bottom: 16px; }
 
@@ -139,6 +161,14 @@
   min-width: 130px;
 }
 .inv-input-sm:focus, .inv-select-sm:focus { outline:none; border-color: var(--primary); }
+
+/* Currency/percent toggle + amount, sized as a pair.
+   These two are narrower than the 130px floor `inv-input-sm` sets for the
+   header fields — a currency toggle holding "AED" or "%" does not need the
+   width of a date — so the floor is lifted for them specifically. */
+.inv-discount-pair { display: flex; gap: 8px; align-items: center; }
+.inv-discount-type  { min-width: 0; width: 96px; flex: 0 0 auto; }
+.inv-discount-value { min-width: 0; width: 124px; flex: 0 0 auto; }
 .inv-input-mono { font-family: 'Courier New', monospace; color: var(--text-muted); }
 
 /* Logo box */
@@ -213,7 +243,7 @@
 
 .inv-items-head {
   display: grid;
-  grid-template-columns: 1fr 80px 130px 70px 110px 68px;
+  grid-template-columns: minmax(240px, 1fr) 68px 118px 60px 104px 64px;
   background: #f8fafc;
   border-bottom: 1px solid var(--border);
   padding: 10px 16px;
@@ -227,7 +257,7 @@
 
 .inv-item-row {
   display: grid;
-  grid-template-columns: 1fr 80px 130px 70px 110px 68px;
+  grid-template-columns: minmax(240px, 1fr) 68px 118px 60px 104px 64px;
   align-items: start;
   padding: 12px 16px;
   gap: 8px;
@@ -408,4 +438,22 @@
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Full-screen refinements ─────────────────────────── */
+/* The bar spans the full width, but its contents line up with the document
+   below so the Back/Save buttons aren't stranded in the far corners. */
+.inv-form-bar {
+  padding-inline: max(24px, calc((100vw - 1180px) / 2));
+}
+
+/* Give the sheet room to breathe on large screens without letting the form
+   controls stretch to absurd widths. */
+@media (min-width: 1400px) {
+  .inv-form-body { padding: 34px 48px 64px; }
+}
+
+@media (max-width: 700px) {
+  .inv-form-body { padding: 18px 16px 40px; }
+  .inv-form-bar  { padding-inline: 14px; }
 }

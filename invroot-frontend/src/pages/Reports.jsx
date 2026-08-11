@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { fmtCurrency } from '../utils/currency.js';
+import { downloadCsv } from '../utils/csv.js';
 import { Download, StatsReport, Archive, DataTransferBoth } from 'iconoir-react';
 import './Reports.css';
 
@@ -76,6 +78,8 @@ function KpiCard({ label, value, sub, accent, icon: Icon }) {
 /* ── Dashboard Report ───────────────────────────────── */
 function DashboardReport({ period }) {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
+  const fmt = (v) => fmtCurrency(v, tenant?.currency);
   const [data, setData]   = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -98,15 +102,19 @@ function DashboardReport({ period }) {
   return (
     <div className="report-section">
       <div className="report-kpi-grid">
-        <KpiCard label="Total Invoiced" value={fmtCurrency(k.total_revenue)} sub={`${k.invoice_count || 0} invoices`} accent="blue" />
-        <KpiCard label="Collected" value={fmtCurrency(k.total_collected)} sub={`${collectionRate}% collection rate`} accent="green" />
-        <KpiCard label="Outstanding" value={fmtCurrency(k.outstanding)} sub="Awaiting payment" accent="amber" />
-        <KpiCard label="Overdue" value={fmtCurrency(k.overdue_amount)} sub={`${k.overdue_count || 0} overdue invoice${k.overdue_count !== 1 ? 's' : ''}`} accent="red" />
+        <KpiCard label={t('invoices.total_invoiced')} value={fmt(k.total_revenue)}
+          sub={t('reports.sub_invoices', { count: k.invoice_count || 0 })} accent="blue" />
+        <KpiCard label={t('reports.collected')} value={fmt(k.total_collected)}
+          sub={t('reports.sub_collection_rate', { pct: collectionRate })} accent="green" />
+        <KpiCard label={t('reports.outstanding')} value={fmt(k.outstanding)}
+          sub={t('reports.awaiting_payment')} accent="amber" />
+        <KpiCard label={t('invoices.overdue_amount')} value={fmt(k.overdue_amount)}
+          sub={t('reports.sub_overdue', { count: k.overdue_count || 0 })} accent="red" />
       </div>
 
       {/* Collection rate bar */}
       <div className="report-card">
-        <div className="report-card-title">Collection Rate</div>
+        <div className="report-card-title">{t('reports.collection_rate')}</div>
         <div className="collection-bar-wrap">
           <div className="collection-bar-track">
             <div className="collection-bar-fill" style={{ width: `${collectionRate}%` }} />
@@ -114,23 +122,23 @@ function DashboardReport({ period }) {
           <span className="collection-bar-pct">{collectionRate}%</span>
         </div>
         <div className="collection-bar-labels">
-          <span>Collected: {fmtCurrency(k.total_collected)}</span>
-          <span>Outstanding: {fmtCurrency(k.outstanding)}</span>
+          <span>{t('reports.collected')}: {fmt(k.total_collected)}</span>
+          <span>{t('reports.outstanding')}: {fmt(k.outstanding)}</span>
         </div>
       </div>
 
       {/* Cashflow table */}
       {cf.length > 0 && (
         <div className="report-card">
-          <div className="report-card-title">Cashflow — Last {period} Days</div>
+          <div className="report-card-title">{t('reports.cashflow_last_days', { count: period })}</div>
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Invoiced</th>
-                  <th>Collected</th>
-                  <th>Gap</th>
+                  <th>{t('common.date')}</th>
+                  <th>{t('reports.invoiced')}</th>
+                  <th>{t('reports.collected')}</th>
+                  <th>{t('reports.gap')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,9 +147,9 @@ function DashboardReport({ period }) {
                   return (
                     <tr key={row.date}>
                       <td>{row.date}</td>
-                      <td className="td-amount">{fmtCurrency(row.invoiced)}</td>
-                      <td className="td-amount" style={{ color: '#16a34a' }}>{fmtCurrency(row.collected)}</td>
-                      <td className="td-amount" style={{ color: gap > 0 ? '#dc2626' : '#16a34a' }}>{fmtCurrency(gap)}</td>
+                      <td className="td-amount">{fmt(row.invoiced)}</td>
+                      <td className="td-amount" style={{ color: '#16a34a' }}>{fmt(row.collected)}</td>
+                      <td className="td-amount" style={{ color: gap > 0 ? '#dc2626' : '#16a34a' }}>{fmt(gap)}</td>
                     </tr>
                   );
                 })}
@@ -157,6 +165,8 @@ function DashboardReport({ period }) {
 /* ── Aging Report ───────────────────────────────────── */
 function AgingReport() {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
+  const fmt = (v) => fmtCurrency(v, tenant?.currency);
   const [rows, setRows]     = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -185,7 +195,7 @@ function AgingReport() {
           return (
             <div key={b.key} className="aging-bucket-card" style={{ borderTopColor: b.color }}>
               <div className="aging-bucket-label" style={{ color: b.color }}>{b.label}</div>
-              <div className="aging-bucket-value">{fmtCurrency(total)}</div>
+              <div className="aging-bucket-value">{fmt(total)}</div>
               <div className="aging-bucket-sub">{rows.filter(r => parseFloat(r[b.key]) > 0).length} clients</div>
             </div>
           );
@@ -194,24 +204,39 @@ function AgingReport() {
 
       <div className="report-card">
         <div className="report-card-header">
-          <div className="report-card-title">Accounts Receivable Aging</div>
-          <div className="report-card-sub">Total outstanding: <strong>{fmtCurrency(grandTotal)}</strong></div>
+          <div className="report-card-title">{t('reports.ar_aging')}</div>
+          <div className="report-card-sub" style={{ marginInlineEnd: 'auto' }}>{t('reports.total_outstanding')} <strong>{fmt(grandTotal)}</strong></div>
+          <button className="btn btn-outline btn-sm" disabled={rows.length === 0}
+            onClick={() => downloadCsv(
+              'ar-aging.csv',
+              [
+                { label: 'Client', value: 'client_name' },
+                { label: '0-30 days', value: 'd0_30' },
+                { label: '31-60 days', value: 'd31_60' },
+                { label: '61-90 days', value: 'd61_90' },
+                { label: '90+ days', value: 'd90plus' },
+                { label: t('reports.total_outstanding').replace(/:$/, ''), value: 'total_outstanding' },
+              ],
+              rows
+            )}>
+            <Download style={{ width: 14, height: 14 }} /> {t('reports.export_csv')}
+          </button>
         </div>
         {rows.length === 0 ? (
           <div className="empty-state">
             <Archive className="empty-state-icon" />
-            <div className="empty-state-title">No outstanding balances</div>
-            <div className="empty-state-sub">All invoices are paid — great work!</div>
+            <div className="empty-state-title">{t('reports.no_outstanding')}</div>
+            <div className="empty-state-sub">{t('reports.all_paid')}</div>
           </div>
         ) : (
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Client</th>
+                  <th>{t('invoices.client')}</th>
                   {BUCKETS.map(b => <th key={b.key} style={{ color: b.color }}>{b.label}</th>)}
-                  <th>Total</th>
-                  <th>Exposure</th>
+                  <th>{t('common.total')}</th>
+                  <th>{t('reports.exposure')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,10 +245,10 @@ function AgingReport() {
                     <td style={{ fontWeight: 600 }}>{r.client_name}</td>
                     {BUCKETS.map(b => (
                       <td key={b.key} className="td-amount" style={{ color: parseFloat(r[b.key]) > 0 ? b.color : 'var(--text-muted)' }}>
-                        {parseFloat(r[b.key]) > 0 ? fmtCurrency(r[b.key]) : '—'}
+                        {parseFloat(r[b.key]) > 0 ? fmt(r[b.key]) : '—'}
                       </td>
                     ))}
-                    <td className="td-amount" style={{ fontWeight: 700 }}>{fmtCurrency(r.total_outstanding)}</td>
+                    <td className="td-amount" style={{ fontWeight: 700 }}>{fmt(r.total_outstanding)}</td>
                     <td>
                       <div className="aging-exposure-bar">
                         <div className="aging-exposure-fill" style={{ width: `${Math.round((parseFloat(r.total_outstanding) / maxTotal) * 100)}%` }} />
@@ -243,6 +268,8 @@ function AgingReport() {
 /* ── Sales Report ───────────────────────────────────── */
 function SalesReport() {
   const { t } = useTranslation();
+  const { tenant } = useContext(AuthContext);
+  const fmt = (v) => fmtCurrency(v, tenant?.currency);
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupBy, setGroupBy] = useState('client');
@@ -275,16 +302,26 @@ function SalesReport() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginInlineStart: 'auto' }}>
-            <input type="date" className="report-date-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="From" />
+            <input type="date" className="report-date-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title={t('reports.from')} />
             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>to</span>
             <input type="date" className="report-date-input" value={dateTo} onChange={e => setDateTo(e.target.value)} title="To" />
+            <button className="btn btn-outline btn-sm" disabled={rows.length === 0}
+              onClick={() => downloadCsv(
+                `sales-by-${groupBy}.csv`,
+                groupBy === 'client'
+                  ? [{ label: 'Client', value: r => r.client_name }, { label: 'Revenue', value: 'revenue' }, { label: 'Invoices', value: 'invoice_count' }]
+                  : [{ label: 'Product / Service', value: r => r.description }, { label: 'Revenue', value: 'revenue' }, { label: 'Quantity', value: 'quantity' }],
+                rows
+              )}>
+              <Download style={{ width: 14, height: 14 }} /> {t('reports.export_csv')}
+            </button>
           </div>
         </div>
 
         {loading ? <Loader /> : (
           <>
             <div className="sales-total-bar">
-              Total revenue: <strong>{fmtCurrency(totalRevenue)}</strong>
+              Total revenue: <strong>{fmt(totalRevenue)}</strong>
             </div>
             <div className="table-wrapper">
               <table className="data-table">
@@ -292,14 +329,14 @@ function SalesReport() {
                   <tr>
                     <th>#</th>
                     <th>{groupBy === 'client' ? 'Client' : 'Product / Service'}</th>
-                    <th>Revenue</th>
+                    <th>{t('reports.revenue')}</th>
                     <th>{groupBy === 'client' ? 'Invoices' : 'Qty'}</th>
-                    <th>Share</th>
+                    <th>{t('reports.share')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 && (
-                    <tr><td colSpan={5}><div className="empty-state"><DataTransferBoth className="empty-state-icon" /><div className="empty-state-title">No data</div><div className="empty-state-sub">Adjust the filters or date range</div></div></td></tr>
+                    <tr><td colSpan={5}><div className="empty-state"><DataTransferBoth className="empty-state-icon" /><div className="empty-state-title">{t('reports.no_data')}</div><div className="empty-state-sub">{t('reports.adjust_filters')}</div></div></td></tr>
                   )}
                   {rows.map((r, i) => {
                     const rev = parseFloat(r.revenue) || 0;
@@ -308,7 +345,7 @@ function SalesReport() {
                       <tr key={i}>
                         <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{i + 1}</td>
                         <td style={{ fontWeight: 600 }}>{r.client_name || r.description || '—'}</td>
-                        <td className="td-amount" style={{ fontWeight: 700, color: 'var(--primary)' }}>{fmtCurrency(rev)}</td>
+                        <td className="td-amount" style={{ fontWeight: 700, color: 'var(--primary)' }}>{fmt(rev)}</td>
                         <td>{r.invoice_count || r.quantity || '—'}</td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

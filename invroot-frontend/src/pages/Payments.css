@@ -51,8 +51,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
+  /* The modal body is the scroll region now; capping the list here as well
+     produced two nested scrollbars. */
 }
 .pay-picker-item {
   display: flex;
@@ -67,7 +67,17 @@
   text-align: left;
   transition: border-color .15s, background .15s;
 }
-.pay-picker-item:hover { border-color: var(--secondary, #d63a17); background: #fff; }
+.pay-picker-item:hover {
+  border-color: var(--secondary, #8A6D1F);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.pay-picker-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.pay-picker-left { min-width: 0; }
+.pay-picker-right { text-align: end; flex-shrink: 0; margin-inline-start: 12px; }
 .pay-picker-num { font-weight: 700; font-size: 14px; font-family: monospace; }
-.pay-picker-client { font-size: 12px; color: var(--text-muted, #6b7280); margin-top: 2px; }
-.pay-picker-amount { font-weight: 700; font-size: 15px; color: var(--secondary, #d63a17); }
+.pay-picker-client {
+  font-size: 12px; color: var(--text-muted, #6b7280); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pay-picker-amount { font-weight: 700; font-size: 15px; color: var(--secondary, #8A6D1F); }

@@ -21,8 +21,8 @@
 }
 .rem-tab:hover { color: var(--primary, #0D1B2A); }
 .rem-tab.active {
-  color: var(--secondary, #d63a17);
-  border-bottom-color: var(--secondary, #d63a17);
+  color: var(--secondary, #8A6D1F);
+  border-bottom-color: var(--secondary, #8A6D1F);
   font-weight: 600;
 }
 
@@ -44,7 +44,7 @@
   transition: border-color .15s;
 }
 .rem-rule-card.inactive { opacity: .55; }
-.rem-rule-card:hover { border-color: var(--secondary, #d63a17); }
+.rem-rule-card:hover { border-color: var(--secondary, #8A6D1F); }
 .rem-rule-left { display: flex; align-items: center; gap: 14px; }
 .rem-rule-icon {
   width: 38px; height: 38px;
@@ -77,7 +77,7 @@
   transition: background .2s;
   flex-shrink: 0;
 }
-.rem-toggle.on  { background: var(--secondary, #d63a17); }
+.rem-toggle.on  { background: var(--secondary, #8A6D1F); }
 .rem-toggle.off { background: #d1d5db; }
 .rem-toggle-knob {
   position: absolute;

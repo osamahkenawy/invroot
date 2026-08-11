@@ -219,3 +219,54 @@
 @media (max-width: 420px) {
   .clients-stats { grid-template-columns: 1fr; }
 }
+
+/* ── Client profile picture (drawer) ──────────────────── */
+.drawer-avatar-btn {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 14px;
+  line-height: 0;
+}
+.drawer-avatar-btn:disabled { cursor: default; opacity: .6; }
+/* The camera badge is the affordance — without it a picture that is already
+   set looks like a static decoration rather than something clickable. */
+.drawer-avatar-edit {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface, #fff);
+  transition: transform .12s ease;
+}
+.drawer-avatar-edit svg { width: 11px; height: 11px; }
+.drawer-avatar-btn:hover:not(:disabled) .drawer-avatar-edit { transform: scale(1.12); }
+
+.drawer-avatar-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.drawer-avatar-actions button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary, #0D1B2A);
+  cursor: pointer;
+}
+.drawer-avatar-actions button:hover:not(:disabled) { text-decoration: underline; }
+.drawer-avatar-actions button:disabled { opacity: .5; cursor: default; }
+.drawer-avatar-actions button.danger { color: var(--danger, #dc2626); }
+
+[dir="rtl"] .drawer-avatar-edit { right: auto; left: -4px; }

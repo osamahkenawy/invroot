@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
 import { Bell, Plus, Xmark, Check, Trash, Mail, Phone, Calendar, Clock } from 'iconoir-react';
 import { fmtDate } from '../utils/date.js';
@@ -16,6 +17,7 @@ const STATUS_COLOR = {
 
 export default function Reminders() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
   const [tab,       setTab]       = useState('rules');   // 'rules' | 'templates' | 'log'
   const [rules,     setRules]     = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -43,13 +45,17 @@ export default function Reminders() {
   useEffect(() => { fetchAll(); }, []);
 
   const toggleRule = async (rule) => {
-    await api.put(`/reminders/rules/${rule.id}`, { ...rule, is_active: rule.is_active ? 0 : 1 });
+    const res = await api.put(`/reminders/rules/${rule.id}`, { ...rule, is_active: rule.is_active ? 0 : 1 });
+    if (res?.success === false) return showToast(res.message || t('common.action_failed'), 'error');
+    showToast(t('common.updated_success'));
     fetchAll();
   };
 
   const deleteRule = async (id) => {
     if (!confirm(t('reminders.confirm_delete_rule'))) return;
-    await api.delete(`/reminders/rules/${id}`);
+    const res = await api.delete(`/reminders/rules/${id}`);
+    if (res?.success === false) return showToast(res.message || t('common.delete_failed'), 'error');
+    showToast(t('common.deleted_success'));
     fetchAll();
   };
 
@@ -224,6 +230,7 @@ export default function Reminders() {
 
 /* ── Rule Modal ─────────────────────────────────────── */
 function RuleModal({ rule, templates, onClose, onSave }) {
+  const { showToast } = useToastContext();
   const { t } = useTranslation();
   const [form, setForm] = useState({
     name: rule?.name || '',
@@ -239,11 +246,11 @@ function RuleModal({ rule, templates, onClose, onSave }) {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      if (rule?.id) {
-        await api.put(`/reminders/rules/${rule.id}`, form);
-      } else {
-        await api.post('/reminders/rules', form);
-      }
+      const res = rule?.id
+        ? await api.put(`/reminders/rules/${rule.id}`, form)
+        : await api.post('/reminders/rules', form);
+      if (res?.success === false) { showToast(res.message || t('common.save_failed'), 'error'); return; }
+      showToast(t(rule?.id ? 'common.updated_success' : 'common.created_success'));
       onSave();
     } finally { setSaving(false); }
   };
@@ -258,13 +265,13 @@ function RuleModal({ rule, templates, onClose, onSave }) {
         <div className="modal-body">
           <div className="field-group">
             <label className="field-label">{t('reminders.rule_name')} *</label>
-            <input className="field-input" value={form.name} onChange={set('name')} placeholder="e.g. 3 days before due" />
+            <input className="field-input" value={form.name} onChange={set('name')} placeholder={t('reminders.ph_rule_name')} />
           </div>
           <div className="field-row">
             <div className="field-group">
               <label className="field-label">{t('reminders.days_offset')}</label>
               <input className="field-input" type="number" value={form.days_offset} onChange={set('days_offset')}
-                placeholder="Negative = before due, 0 = on due, positive = after" />
+                placeholder={t('reminders.offset_hint')} />
               <p className="field-hint">
                 {form.days_offset < 0 ? `${Math.abs(form.days_offset)} day(s) before due date`
                   : form.days_offset > 0 ? `${form.days_offset} day(s) after due date`
@@ -305,6 +312,7 @@ function RuleModal({ rule, templates, onClose, onSave }) {
 
 /* ── Template Modal ──────────────────────────────────── */
 function TemplateModal({ tpl, onClose, onSave }) {
+  const { showToast } = useToastContext();
   const { t } = useTranslation();
   const [form, setForm] = useState({
     name: tpl?.name || '',
@@ -321,11 +329,11 @@ function TemplateModal({ tpl, onClose, onSave }) {
     if (!form.name.trim() || !form.subject_en.trim()) return;
     setSaving(true);
     try {
-      if (tpl?.id) {
-        await api.put(`/reminders/templates/${tpl.id}`, form);
-      } else {
-        await api.post('/reminders/templates', form);
-      }
+      const res = tpl?.id
+        ? await api.put(`/reminders/templates/${tpl.id}`, form)
+        : await api.post('/reminders/templates', form);
+      if (res?.success === false) { showToast(res.message || t('common.save_failed'), 'error'); return; }
+      showToast(t(tpl?.id ? 'common.updated_success' : 'common.created_success'));
       onSave();
     } finally { setSaving(false); }
   };
@@ -343,15 +351,15 @@ function TemplateModal({ tpl, onClose, onSave }) {
           <div className="field-row">
             <div className="field-group">
               <label className="field-label">{t('reminders.template_name')} *</label>
-              <input className="field-input" value={form.name} onChange={set('name')} placeholder="Template name" />
+              <input className="field-input" value={form.name} onChange={set('name')} placeholder={t('reminders.ph_template_name')} />
             </div>
             <div className="field-group">
               <label className="field-label">{t('reminders.type')}</label>
               <select className="field-input" value={form.type} onChange={set('type')}>
-                <option value="reminder">Reminder</option>
-                <option value="overdue">Overdue Notice</option>
-                <option value="receipt">Receipt Confirmation</option>
-                <option value="thank_you">Thank You</option>
+                <option value="reminder">{t('reminders.type_reminder')}</option>
+                <option value="overdue">{t('reminders.type_overdue')}</option>
+                <option value="receipt">{t('reminders.type_receipt')}</option>
+                <option value="thank_you">{t('reminders.type_thanks')}</option>
               </select>
             </div>
           </div>
@@ -366,7 +374,7 @@ function TemplateModal({ tpl, onClose, onSave }) {
               <h4>🇬🇧 English</h4>
               <div className="field-group">
                 <label className="field-label">{t('reminders.subject')} (EN) *</label>
-                <input className="field-input" value={form.subject_en} onChange={set('subject_en')} placeholder="Subject line" />
+                <input className="field-input" value={form.subject_en} onChange={set('subject_en')} placeholder={t('reminders.ph_subject')} />
               </div>
               <div className="field-group">
                 <label className="field-label">{t('reminders.body')} (EN)</label>
@@ -378,11 +386,11 @@ function TemplateModal({ tpl, onClose, onSave }) {
               <h4>🇸🇦 Arabic</h4>
               <div className="field-group">
                 <label className="field-label">{t('reminders.subject')} (AR)</label>
-                <input className="field-input" dir="rtl" value={form.subject_ar} onChange={set('subject_ar')} placeholder="الموضوع" />
+                <input className="field-input" dir="rtl" value={form.subject_ar} onChange={set('subject_ar')} placeholder={t('reminders.ph_subject_ar')} />
               </div>
               <div className="field-group">
                 <label className="field-label">{t('reminders.body')} (AR)</label>
-                <textarea className="field-input" dir="rtl" rows={5} value={form.body_ar} onChange={set('body_ar')} placeholder="محتوى الرسالة..." />
+                <textarea className="field-input" dir="rtl" rows={5} value={form.body_ar} onChange={set('body_ar')} placeholder={t('reminders.ph_body_ar')} />
               </div>
             </div>
           </div>

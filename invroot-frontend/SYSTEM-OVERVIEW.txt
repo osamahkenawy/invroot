@@ -1,0 +1,499 @@
+===============================================================
+INVROOT — SYSTEM OVERVIEW
+===============================================================
+A reference document of what exists in the codebase today, what
+works, and what is known to be incomplete. Written from direct
+inspection of the code, not assumptions — where something is a
+gap rather than a feature, it says so explicitly.
+
+Companion files (same folder):
+  brand-assets.txt     product identity + tenant-upload image specs
+  website-assets.txt   marketing site image specs, page-by-page
+
+
+===============================================================
+1. WHAT INVROOT IS
+===============================================================
+A multi-tenant B2B invoicing / billing SaaS. Each signed-up
+business ("tenant") gets its own isolated workspace to manage
+clients, send invoices and quotes, record payments, track
+expenses and banking, and run basic reports — with a self-serve
+client portal so their customers can view invoices without a
+login. Bilingual (English/Arabic, full RTL), multi-currency.
+
+Positioning, from the signup/login copy already in the app:
+  "Billing Simplified" — full Arabic & English support,
+  multi-currency, VAT-ready invoices, bank-level encryption,
+  role-based permissions, audit log on every action.
+
+
+===============================================================
+2. TECH STACK
+===============================================================
+BACKEND   Node.js + Express (ESM, "type": "module")
+          MySQL via mysql2 (raw SQL, no ORM)
+          JWT auth (jsonwebtoken) + httpOnly cookie, 7-day expiry
+          bcryptjs for password hashing
+          Multer for file uploads, Sharp available for images
+          Puppeteer for PDF generation (invoices/quotes/receipts)
+          Nodemailer for email (SMTP, currently Office365)
+          Stripe SDK for subscriptions (partially wired, see §11)
+          node-cron for scheduled jobs
+          helmet, cors, express-rate-limit, cookie-parser
+
+FRONTEND  React 18 + Vite (no TypeScript — plain .jsx)
+          react-router-dom v6
+          react-i18next (en/ar, RTL via [dir] attribute + rtl.css)
+          Chart.js + react-chartjs-2 for dashboard charts
+          iconoir-react for all icons
+          react-signature-canvas for the signature capture
+          No UI framework (Tailwind/MUI/etc.) — hand-written CSS
+          per page/component, CSS custom properties for theming
+
+DATABASE  Single MySQL database named "trasealla".
+
+          ⚠ TABLE-NAME COLLISIONS — READ BEFORE ADDING TABLES
+          Because the DB is shared, some table names were already
+          taken by the CRM. INVROOT's 001_init.sql uses CREATE TABLE
+          IF NOT EXISTS, so those creates silently did nothing and
+          INVROOT's code ended up querying the CRM's tables:
+            quotes      -> CRM's (no tenant_id/client_id/line_items)
+            audit_logs  -> CRM's (branch_id/entity_type/old_values)
+            quote_items -> CRM's (INVROOT never used it)
+          Effect: the entire Quotes module failed with "Unknown
+          column 'tenant_id' in 'where clause'", and every
+          logAudit() write silently failed, app-wide.
+          FIXED in migration 006 by giving INVROOT its own
+          `invroot_quotes` and `invroot_audit_logs` tables.
+          Any NEW table must be checked against SHOW TABLES first;
+          prefer an `invroot_` prefix when the plain name is taken.
+          IMPORTANT: this database is SHARED with other Trasealla
+          Solutions products (a CRM/omnichannel-support system —
+          tables like crm_contacts, deals, pipelines, omni_*,
+          campaigns, leads, workflows are NOT part of INVROOT).
+          INVROOT's own tables are listed in §5. Be careful not to
+          touch the non-INVROOT tables when working in this DB.
+
+NO ORM — all queries are hand-written SQL via query()/execute()
+helpers in src/lib/database.js. No query builder, no migrations
+framework beyond a homemade one (see §4).
+
+
+===============================================================
+3. ARCHITECTURE
+===============================================================
+MULTI-TENANCY
+  Row-level: every business-data table has a tenant_id column.
+  tenantMiddleware (src/middleware/tenant.js) resolves the
+  authenticated user's tenant and every query is scoped to it.
+  There is no schema-per-tenant or database-per-tenant — a single
+  shared schema with tenant_id filtering throughout.
+
+AUTH — two independent systems, do not confuse them:
+  (a) Tenant admin/staff — JWT in an httpOnly cookie (auth_token)
+      OR a Bearer header (frontend keeps a copy in localStorage
+      as auth_token for cases where cookies aren't sent, e.g. the
+      file upload fetch() calls). authMiddleware in
+      src/middleware/auth.js checks cookie first, header second.
+  (b) Client portal — a completely separate flow. Clients don't
+      have accounts; they get a portal_token emailed/shared to
+      them, exchange it for a portal_session_token, and that's
+      stored in sessionStorage on the frontend. See §9.
+  (c) Super Admin — a third, separate login (SuperAdminLogin.jsx),
+      its own token in localStorage as sa_token, gates the whole
+      /admin/* route tree. Platform-level, not tenant-scoped.
+
+ROLE-BASED PERMISSIONS
+  roles table stores a JSON permissions blob per tenant per role
+  slug. src/middleware/role-gate.js reads req.user.permissions
+  (attached by authMiddleware). requireOwner in auth.js gates
+  owner-only actions (branding, logo/stamp upload, etc.)
+
+FRONTEND STATE
+  No Redux/Zustand — just two React Contexts:
+    AuthContext   — { user, tenant, loading, login, logout,
+                      refreshUser } — src/context/AuthContext.jsx
+    ToastContext  — { showToast } — src/context/ToastContext.jsx
+                    (wired to actual UI calls this session; see §12)
+  Everything else is local useState/useEffect per page. No data-
+  fetching library (no react-query/SWR) — plain fetch via
+  src/lib/api.js, refetched manually after mutations.
+
+
+===============================================================
+4. DATABASE MIGRATIONS
+===============================================================
+Location: invroot-backend/src/migrations/*.sql
+Runner:   src/migrations/run.js, invoked from initDatabase() in
+          src/lib/database.js on every server boot.
+
+Homemade migration system: a _migrations tracking table records
+which .sql files have run; each file's statements execute once,
+errors for "already exists / duplicate column/key" are swallowed
+so re-runs are safe. As of this session the runner reads the
+migrations directory directly (READDIR + sort), so any .sql file
+dropped in there runs automatically — earlier it had a hardcoded
+list and silently skipped 003/004 for the life of this project
+until that was fixed.
+
+Applied migrations today:
+  001_init.sql          core schema — tenants, users, clients,
+                         invoices, quotes, payments, credit_notes,
+                         catalog_items, recurring_schedules, etc.
+  002_receipts.sql       receipts table
+  003_number_format.sql  invoice_numbering.number_format column
+  004_super_admin.sql    super-admin-related schema
+  005_branding.sql       tenants.primary_color / accent_color /
+                         invoice_template (added this session —
+                         the Branding settings screen existed in
+                         the UI for a while with nowhere to save)
+  006_invroot_quotes.sql invroot_quotes + invroot_audit_logs —
+                         resolves the CRM table-name collision
+                         described in §2
+
+
+===============================================================
+5. INVROOT'S OWN DATABASE TABLES
+===============================================================
+(Ignore any other table in the "trasealla" database — see §2.)
+
+TENANCY & IDENTITY
+  tenants            company profile, branding, currency, plan,
+                      subscription_id, status (trialing/active/
+                      suspended/cancelled), logo_url, stamp_url
+  users               tenant staff, role, is_owner, is_super_admin,
+                      email_verified, lang_preference
+  roles               per-tenant role -> JSON permissions
+  company_signatories default signatory name/title/signature_url
+                      used on generated PDFs
+
+CLIENTS & CATALOG
+  clients             tenant's customers — email, phone, currency
+                      override, portal_token/portal_session_token
+                      for portal access, credit_limit/balance
+  client_notes        free-text notes against a client
+  catalog_items       reusable line-item templates (name, price,
+                      tax_rate, is_service)
+
+BILLING DOCUMENTS
+  invoices            core document — status enum (draft/sent/
+                      viewed/partial/paid/overdue/void), line_items
+                      as JSON, currency, discount, tax, stamp_url/
+                      signature_url/signatory_id snapshot at send
+                      time, parent_invoice_id/relation_type (for
+                      duplicates and quote->invoice conversion)
+  invroot_quotes      same shape as invoices, status pipeline
+                      draft/sent/accepted/rejected/expired/
+                      converted, client_comment on respond
+  credit_notes        linked to an invoice, void/apply actions
+  recurring_schedules automated invoice generation on a cadence
+                      (daily/weekly/monthly/quarterly/yearly),
+                      auto_send flag, next_billing_date
+  invoice_numbering   per-tenant numbering scheme (classic vs
+                      date-based prefix/MM/YYYY/SEQ)
+
+MONEY
+  payments            recorded against an invoice, method enum
+  receipts            generated proof-of-payment, own PDF template
+  expenses            vendor bills, status (unpaid/paid/overdue/
+                      draft), category, payment_method
+  bank_accounts        + bank_transactions — manual banking ledger,
+                      per-account currency and running balance
+  tax_rates            configurable VAT/tax rates
+
+OTHER MODULES
+  time_entries        billable hours, hourly_rate, client/project,
+                      unbilled/billed/void status
+  reminder_rules       + reminder_logs — automated payment reminder
+                      cadence (see recurring.js / node-cron jobs)
+  invroot_audit_logs   append-only action log (logAudit() helper
+                      called from most mutation routes)
+  api_keys             tenant-issued API keys (Integrations page)
+
+
+===============================================================
+6. BACKEND API — ROUTES BY MODULE
+===============================================================
+Base path /api/*. Each file in invroot-backend/src/routes/:
+
+  auth.js          register, login, logout, /me, verify-email,
+                   forgot-password, reset-password
+  company.js        GET/PUT company profile + branding, logo/
+                   stamp/signature upload endpoints
+  tenants.js        GET current tenant (used by AuthContext)
+  clients.js        CRUD + portal token issuance
+  catalog.js        CRUD for reusable line items
+  invoices.js       CRUD, /summary, /:id/pdf, /:id/send,
+                   /:id/void, /:id/duplicate, /:id/relations,
+                   payment recording lives partly here too
+  quotes.js         CRUD, /:id/pdf, /:id/respond (portal-facing),
+                   convert-to-invoice
+  credit-notes.js    CRUD, /:id/void, /:id/apply, /summary
+  recurring.js       CRUD + the cron-driven auto-generation logic
+  payments.js        list/create/delete, tied to invoices
+  receipts.js         list + /:id/pdf
+  expenses.js         CRUD, /summary, /:id/mark-paid
+  banking.js          accounts CRUD, transactions CRUD, balances
+  time-tracking.js    CRUD, /summary, /:id/mark-billed
+  reminders.js        rule CRUD, delivery logs
+  reports.js           /dashboard, /aging, /sales — tenant-scoped
+                   aggregate queries, all currency-aware (derive
+                   from tenants.currency server-side)
+  tax.js               tax rate CRUD
+  settings.js          misc settings not covered by company.js
+  audit.js              GET audit log, tenant-scoped
+  integrations.js       API key issuance/revocation
+  uploads.js            generic image/document upload endpoint
+  client-portal.js       SEPARATE auth (see §9) — login, dashboard,
+                   invoices, invoices/:id, payments, quotes/:id/
+                   respond
+  stripe.js              create-checkout, webhook (see §11 for gaps)
+  webhooks.js             outbound webhook delivery to tenant-
+                   configured endpoints
+  super-admin.js           platform-level: tenant list/detail,
+                   cross-tenant invoices/payments, analytics,
+                   user management — gated by is_super_admin
+
+
+===============================================================
+7. FRONTEND — PAGES & ROUTING
+===============================================================
+Router: src/App.jsx. Three route trees:
+
+PUBLIC (unauthenticated)
+  /login              LoginPage.jsx
+  /signup             SignupPage.jsx (3-step: business info,
+                      credentials, plan selection)
+  /verify-email       VerifyEmailPage.jsx
+  /portal/*           ClientPortal (own login, own layout)
+
+TENANT APP (behind ProtectedRoute, wrapped in Layout.jsx sidebar)
+  /dashboard          KPIs, cash flow chart, recent invoices
+  /invoices           list + InvoiceFormModal + InvoiceDetailModal
+  /quotes             Quotes.jsx
+  /recurring          Recurring.jsx
+  /credit-notes       CreditNotes.jsx
+  /reminders          Reminders.jsx
+  /payments           Payments.jsx
+  /receipts           Receipts.jsx
+  /expenses           Expenses.jsx
+  /banking            Banking.jsx
+  /tax                Tax.jsx
+  /reports            Reports.jsx (Overview / Aging / Sales tabs)
+  /clients            Clients.jsx (grid + list view)
+  /catalog            Catalog.jsx
+  /time-tracking      TimeTracking.jsx
+  /settings/*         Settings.jsx — nested tabs: company profile,
+                      branding, stamp & signature, team members,
+                      invoice numbering, my profile
+                      NOTE: no /settings/billing route exists yet
+                      even though stripe.js redirects there — §11
+  /integrations       Integrations.jsx
+  /audit              AuditLog.jsx
+
+SUPER ADMIN (separate login, /admin/*)
+  SuperAdminLayout.jsx wraps: SADashboard, SATenants,
+  SATenantDetail, SAInvoices, SAPayments, SAUsers, SAAnalytics.
+  Its own hardcoded orange-based design system — NOT wired to the
+  navy/gold tokens the tenant app uses (see §8).
+
+SHARED COMPONENTS (src/components/)
+  Layout.jsx           sidebar + topbar shell for the tenant app
+  ConfirmDialog.jsx     replacement for window.confirm() — added
+                      this session, only wired into invoice void
+                      so far; ~15 other confirm() calls remain
+  BrandAssetModal.jsx    in-context logo/stamp upload (opens from
+                      inside the invoice form without losing the
+                      draft) — added this session
+  PhoneInput.jsx         country-code + number picker, backed by
+                      src/data/countries.js (189 countries)
+  Toast.jsx / ToastContext  global toast notifications — the
+                      plumbing existed unused for a while; wired
+                      into invoice create/update/send/void/
+                      duplicate/record-payment this session
+  Loader.jsx, Tooltip.jsx, ErrorBoundary.jsx
+  components/invoices/  InvoiceFormModal, InvoiceDetailModal,
+                      RecordPaymentModal
+  components/dashboard/ KpiCard, RevenueChart
+
+
+===============================================================
+8. BRANDING & DESIGN SYSTEM
+===============================================================
+Established this session: a two-tier navy + gold palette,
+replacing an earlier orange (#d63a17) accent.
+
+  --primary        #0D1B2A   navy — sidebar, headers, primary UI
+  --primary-light-blue #1E3448
+  --primary-dark   #060E15
+  --secondary      #8A6D1F   "antique gold" — functional, used
+                              for buttons/links/text on light
+                              backgrounds (passes WCAG AA, 4.9:1)
+  --secondary-light #A9862B  hover state
+  --secondary-dark  #6E561A  pressed state
+  --gold-bright    #D4AF37   decorative only — dark surfaces
+                              (sidebar active state, badges, the
+                              login/signup left panel) — FAILS
+                              contrast as text-on-white (2.1:1),
+                              never use it for body text
+  --gold-wash      #FBF3DC   light background tint
+
+Rule of thumb baked into every component built this session:
+bright gold is a signal on navy, antique gold is functional text
+on white. Defined in invroot-frontend/src/styles/global.css.
+
+The tenant-facing Branding settings screen (Settings > Branding)
+lets each tenant override primary_color/accent_color for THEIR
+OWN generated PDFs — separate concern from INVROOT's own product
+palette above. This tenant-branding path was non-functional until
+this session (columns didn't exist, PDF ignored it — see §13).
+
+Super Admin panel (§7) still runs its own separate orange design
+system, never reconciled with the above — flagged, not fixed.
+
+
+===============================================================
+9. CLIENT PORTAL
+===============================================================
+A distinct, lightweight portal so a tenant's clients can view
+their own invoices/quotes/payments without a full account.
+
+AUTH: clients.portal_token (long-lived, emailed) exchanged at
+/api/client-portal/login for a portal_session_token (24h),
+stored in sessionStorage under PORTAL_TOKEN_KEY on the frontend.
+Entirely separate from the tenant JWT/cookie system — a client
+portal session cannot access any tenant-admin route.
+
+PAGES (src/pages/ClientPortal/index.jsx, single file):
+  /portal/login, /portal/dashboard, /portal/invoices,
+  /portal/payments — plus quote accept/reject actions.
+
+Currency handling here required its own fix this session: the
+portal had zero currency awareness (always defaulted to hardcoded
+'SAR'). Fixed by returning tenant_currency at login and adding
+currency to the /invoices and /payments query results.
+
+
+===============================================================
+10. INTERNATIONALIZATION
+===============================================================
+react-i18next, two locale files: src/i18n/locales/en.json and
+ar.json — kept in lockstep (every key must exist in both). RTL
+handled via a root [dir] attribute plus src/styles/rtl.css
+overrides, not a separate RTL stylesheet per component.
+
+A recurring class of bug found and fixed this session: several
+pages called t('some.key') where the key existed under a
+DIFFERENT namespace (e.g. invoices.qty instead of
+invoices.quantity), so i18next silently rendered the raw key
+string instead of translated text. Worth grepping for any
+t('...') call whose key doesn't resolve when adding new UI.
+
+
+===============================================================
+11. SUBSCRIPTIONS / BILLING (STRIPE) — INCOMPLETE
+===============================================================
+Infrastructure exists but is not launch-ready. Confirmed by
+reading stripe.js, config.js, and the signup flow directly:
+
+  WORKING    tenants.plan / status / subscription_id columns
+             exist; POST /api/stripe/create-checkout builds a
+             Stripe Checkout session; a webhook handler exists.
+
+  BROKEN     Plan IDs disagree across three places:
+               SignupPage.jsx offers:  starter | pro | business
+               config.js plans:        starter | professional |
+                                        enterprise
+               Stripe price ID env vars: same as config.js
+             Selecting "Pro" or "Business" at signup looks up an
+             undefined Stripe price ID and checkout fails.
+
+  MISSING    stripe.js redirects to /settings/billing on success/
+             cancel — that route does not exist in Settings.jsx.
+             No UI anywhere shows current plan, usage, or lets a
+             tenant change/cancel a subscription.
+
+  UNENFORCED config.js defines maxClients/maxInvoices/maxUsers
+             per plan; nothing in any route checks them. The paid
+             tiers currently unlock nothing.
+
+  MISSING    No annual price IDs (monthly only) — a "save 20%
+             annually" toggle isn't possible without them.
+             Pricing numbers ($19/$49) are hardcoded only in
+             SignupPage.jsx, nowhere shared with a future
+             marketing site.
+
+Full detail + suggested fix order is in website-assets.txt §9.
+
+
+===============================================================
+12. NOTABLE FIXES MADE THIS SESSION
+===============================================================
+For context on why some things above read as "recently added"
+rather than original architecture:
+
+  - Multi-currency: dozens of pages hardcoded 'SAR' as a fallback
+    instead of reading the tenant's configured currency; fixed
+    across Invoices, Quotes, Recurring, Payments, Receipts,
+    Expenses, Banking, Time Tracking, Reports, Client Portal,
+    Dashboard, Credit Notes, Catalog, Clients.
+  - Registration/email verification: /verify-email had no
+    frontend route at all (the emailed link went nowhere); built
+    it, plus a first-login redirect into Settings onboarding.
+  - Branding: navy/gold token system introduced app-wide,
+    replacing hardcoded orange in ~15 files; Settings > Branding
+    wired to real DB columns; PDF now honors tenant accent color.
+  - Logo/stamp uploads: the uploads/ directory tree was never
+    created on disk, so every upload silently failed; the PDF
+    also pointed at the wrong subfolder for the logo specifically.
+  - Migration runner only executed 001/002, ignoring 003/004 —
+    fixed to read the directory.
+  - Toast notifications: the whole system existed, mounted, and
+    unused — wired into the invoice lifecycle, which immediately
+    surfaced a real bug (Duplicate invoice was broken — it wrote
+    invalid JSON into line_items and silently 500'd).
+  - Native window.confirm() dialogs are being replaced with
+    ConfirmDialog — only the invoice void path is converted so far.
+  - Settings phone/country fields reordered so Country drives the
+    phone dial code automatically (via the shared countries.js
+    dataset), instead of two disconnected fields.
+
+
+===============================================================
+13. KNOWN GAPS / NOT YET DONE
+===============================================================
+Flagged during this session, deliberately not changed without
+being asked:
+
+  - ~15 more window.confirm() call sites (Quotes, Clients,
+    Payments, Expenses, Banking, etc.) not yet moved to
+    ConfirmDialog.
+  - Invoice FROM block on the PDF/form reads tenant.name, but the
+    actual field is company_name — so it only ever shows the
+    country code.
+  - Invoice status can show "Paid" purely from balance-due math,
+    without checking for void.
+  - Super Admin panel's separate orange design system never
+    reconciled with the navy/gold palette.
+  - No plan-limit enforcement (see §11).
+  - No PDF preview before send (translation key exists, unused).
+  - Subscription lifecycle emails (trial ending, payment failed,
+    plan changed, etc.) don't exist — only auth + invoice-related
+    emails are implemented in src/lib/email.js.
+
+
+===============================================================
+14. ENVIRONMENT / CONFIG
+===============================================================
+invroot-backend/.env keys (see src/config.js for how they're
+consumed): DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, JWT_SECRET,
+JWT_EXPIRES_IN, PORT, NODE_ENV, APP_URL, FRONTEND_URL, EMAIL_HOST,
+EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM, EMAIL_NAME,
+EMAIL_SECURE, EMAIL_TLS, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD.
+
+Local dev: backend on :5000, frontend on :3000 (Vite), MySQL on
+:3306. Uploads served statically from /uploads, written to
+invroot-backend/uploads/{logos,stamps,signatures,images,documents}
+(created on boot as of this session — previously had to exist
+manually or every upload failed).

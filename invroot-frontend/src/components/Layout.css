@@ -28,13 +28,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   min-height: var(--topbar-height, 70px);
 }
 
 .brand { display: flex; align-items: center; gap: 8px; overflow: hidden; }
-.brand-logo { height: 36px; object-fit: contain; }
+.brand-logo { height: 44px; max-width: 175px; object-fit: contain; object-position: left; }
+[dir="rtl"] .brand-logo { object-position: right; }
+/* Collapsed rail (76px) — square icon only */
+.brand-icon { height: 38px; width: 38px; object-fit: contain; flex-shrink: 0; }
+/* 76px minus padding leaves too little for icon + toggle side by side,
+   so stack them; the toggle stays reachable to expand again. */
+.sidebar-collapsed .sidebar-header {
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 8px;
+}
+.sidebar-collapsed .brand { overflow: visible; }
 .brand-name { font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; letter-spacing: 0.5px; }
 
 .collapse-btn {
@@ -91,7 +103,7 @@
   inset-inline-start: -10px;
   top: 25%; bottom: 25%;
   width: 3px;
-  background: #e8512c;
+  background: #D4AF37;
   border-radius: 0 3px 3px 0;
 }
 .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
@@ -104,7 +116,7 @@
   padding: 10px 0;
 }
 .lang-btn, .logout-btn { color: rgba(255, 255, 255, 0.75); }
-.logout-btn:hover { color: #fff; background: rgba(214, 58, 23, 0.35); }
+.logout-btn:hover { color: #fff; background: rgba(212, 175, 55, 0.35); }
 
 /* ── Main ───────────────────────────────────────────── */
 .layout-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -197,6 +209,12 @@
 .user-name { display: block; font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
 .user-role { display: block; font-size: 11px; color: var(--text-muted); text-transform: capitalize; }
 .user-avatar { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; }
+/* Default look for UserAvatar's initials fallback wherever it is used. Screens
+   with their own treatment (My Profile) override it with a more specific rule. */
+.user-avatar--initials {
+  background: var(--gradient-primary);
+  color: #fff;
+}
 .user-avatar-placeholder {
   width: 42px; height: 42px; border-radius: 12px;
   background: var(--gradient-primary); color: #fff;

@@ -1,0 +1,277 @@
+===============================================================
+INVROOT — IMAGE SIZE SPECIFICATION
+===============================================================
+Every image size the product needs, in two groups:
+
+  PART A — INVROOT's own identity (you produce these once)
+  PART B — Tenant-uploaded assets (what your customers upload)
+
+All sizes below are grounded in the actual render sizes in the
+codebase, not generic advice — the source of each number is noted.
+
+===============================================================
+0. DELIVERED FILES — ALREADY IN THE REPO AND WIRED UP
+===============================================================
+Supplied by the client and now live in the app. All five are RGBA
+PNGs with real transparency (verified), which is what lets them sit
+on both the navy sidebar and a white PDF.
+
+SOURCE OF TRUTH:  invroot-frontend/public/logos/
+  (NOT dist/assets/logos/ — Vite wipes dist/ on every build, so the
+   originals were copied into public/ where they survive and are
+   served at /logos/... in both dev and production.)
+
+FILE                                          SIZE       USE
+invroot-600_200-colored-logo.png              600x200    light backgrounds
+invroot-sidebar-logo-600-200-white-logo.png   600x200    dark/navy backgrounds
+invroot-colored-icon-2000-2000.png            2000x2000  icon master (favicons)
+invroot-icon-white-2000-2000.png              2000x2000  icon, dark backgrounds
+invroot-colored-logo-2000-2000-px.png         2000x2000  square lockup / OG
+
+GENERATED FROM THE ICON MASTER (in public/):
+  favicon-16x16.png, favicon-32x32.png, favicon-48x48.png
+  apple-touch-icon.png (180)
+  android-chrome-192x192.png, android-chrome-512x512.png
+  manifest.webmanifest
+
+NOW WIRED INTO:
+  index.html          favicon, apple-touch-icon, manifest,
+                      theme-color (#0D1B2A), OG/Twitter tags
+  Layout.jsx          sidebar mark — ALWAYS INVROOT, never the
+                      tenant's own logo. The sidebar is product
+                      chrome; a tenant's logo belongs on their
+                      invoices/quotes and PDFs, not the app shell.
+                      Swaps to the square icon when the rail is
+                      collapsed (76px), where the header stacks
+                      vertically so the icon keeps its full size.
+  LoginPage.jsx       left navy panel brand row
+  SignupPage.jsx      left navy panel brand row
+  (all four previously showed a plain text "INVROOT" or a generic
+   iconoir document glyph)
+
+STILL OUTSTANDING:
+  - maskable Android icon: the mark currently fills the full canvas
+    edge-to-edge. Android crops maskable icons to a circle, so a
+    padded variant is needed (mark inside the middle ~80%).
+  - a true vector (SVG) logo — everything above is raster. Fine at
+    current sizes, but SVG would be better for print and large
+    marketing use.
+  - a dedicated 1200x630 OG image. index.html currently points at
+    the 2000x2000 square lockup, which social platforms will
+    letterbox rather than crop nicely.
+
+
+BRAND PALETTE
+--------------------------------------------------
+Primary Navy:      #0D1B2A
+Navy Light:        #1E3448
+Navy Dark:         #060E15
+Gold - Bright:     #D4AF37   (decorative; dark backgrounds only)
+Gold - Antique:    #8A6D1F   (functional; safe on white)
+Gold Wash:         #FBF3DC   (background tint)
+Light app surface: #F5F7FA
+
+
+===============================================================
+PART A — INVROOT PRODUCT IDENTITY
+===============================================================
+
+--- A1. Favicon & browser tab ---
+FILE                          SIZE              FORMAT   SOURCE
+favicon.svg                   vector            SVG      Master 1
+favicon-16x16.png             16 x 16           PNG      Master 1
+favicon-32x32.png             32 x 32           PNG      Master 1
+favicon-48x48.png             48 x 48           PNG      Master 1
+favicon.ico                   16+32+48 bundled  ICO      Master 1
+
+--- A2. Mobile / PWA app icons ---
+FILE                          SIZE              FORMAT   SOURCE
+apple-touch-icon.png          180 x 180         PNG      Master 1
+android-chrome-192x192.png    192 x 192         PNG      Master 1
+android-chrome-512x512.png    512 x 512         PNG      Master 1
+maskable-icon-512x512.png     512 x 512         PNG      Master 1
+     ^ keep the mark inside the middle 80% (410x410 safe area) —
+       Android crops maskable icons to a circle.
+
+--- A3. Logo lockups (wordmark + mark) ---
+FILE                          SIZE              FORMAT   SOURCE
+logo-horizontal.svg           vector (4:1)      SVG      Master 2  (dark ink, light bg)
+logo-horizontal-dark.svg      vector (4:1)      SVG      Master 3  (white ink, navy bg)
+logo-horizontal@1x.png        400 x 100         PNG      Master 2
+logo-horizontal@2x.png        800 x 200         PNG      Master 2
+logo-horizontal@3x.png        1200 x 300        PNG      Master 2
+logo-email-header.png         400 x 100         PNG      Master 2  (email clients ignore SVG)
+logo-mark-only.svg            vector (1:1)      SVG      Master 1
+
+--- A4. Social / link previews ---
+FILE                          SIZE              FORMAT   SOURCE
+og-image.png                  1200 x 630        PNG      Master 4
+twitter-card.png              1200 x 600        PNG      Master 4  (crop of the same art)
+
+--- A5. Master art to generate (everything above is exported from these) ---
+Generate 4 masters only. Do NOT generate each size separately or the
+icon will drift between sizes.
+MASTER 1  Icon-only mark          1024 x 1024   transparent
+MASTER 2  Lockup, light bg        2400 x 600    transparent
+MASTER 3  Lockup, dark bg         2400 x 600    transparent
+MASTER 4  Social share art        1200 x 630    opaque
+
+
+===============================================================
+PART B — TENANT-UPLOADED ASSETS
+===============================================================
+These are what each customer uploads in Settings. Sizes are derived
+from where they actually render, at 3x for print-quality PDF output.
+Limits are enforced in src/middleware/upload.js.
+
+--- B1. Company logo ---
+Uploaded at:  Settings > Company Profile, or inline from the invoice form
+Renders at:   36px tall  (app sidebar — Layout.css .brand-logo)
+              120 x 90px (invoice form logo box — InvoiceFormModal.css)
+              60px tall  (invoice + receipt PDF — pdf.js .company-logo img)
+
+RECOMMENDED UPLOAD      600 x 200 px   (3:1, transparent PNG)
+MINIMUM                 300 x 100 px
+MAXIMUM FILE SIZE       5 MB           (hard limit, enforced)
+ACCEPTED                PNG, JPG, WEBP, GIF
+NOTES                   Transparent PNG strongly preferred — the logo
+                        sits on navy in the sidebar and on white in the
+                        PDF, so a baked-in background will look wrong in
+                        one of the two. Wide/horizontal art fits the
+                        120x90 box better than a square.
+
+--- B2. Official stamp ---
+Uploaded at:  Settings > Stamp & Signature
+Renders at:   160 x 90px max (invoice PDF — pdf.js .stamp-box img)
+              140 x 80px max (receipt PDF)
+
+RECOMMENDED UPLOAD      480 x 270 px   (16:9, transparent PNG)
+MINIMUM                 320 x 180 px
+MAXIMUM FILE SIZE       2 MB           (hard limit, enforced)
+ACCEPTED                PNG, JPG, WEBP, GIF
+NOTES                   Must be a transparent PNG — it is rendered at
+                        92% opacity over the invoice, so a white box
+                        will cover the content behind it.
+
+--- B3. Authorised signature ---
+Uploaded at:  Settings > Stamp & Signature
+Renders at:   same box as the stamp (160 x 90px max)
+
+RECOMMENDED UPLOAD      480 x 270 px   (16:9, transparent PNG)
+MINIMUM                 320 x 180 px
+MAXIMUM FILE SIZE       2 MB           (hard limit, enforced)
+ACCEPTED                PNG, JPG, WEBP, GIF
+NOTES                   Transparent PNG required, same reason as above.
+                        Dark ink on transparent scans best.
+
+--- B4. Generic uploads (attachments / misc images) ---
+MAXIMUM FILE SIZE       10 MB          (MAX_FILE_SIZE_MB in .env)
+ACCEPTED (images)       PNG, JPG, WEBP, GIF
+ACCEPTED (documents)    the above + PDF
+
+
+===============================================================
+QUICK ANSWER — EVERY SIZE, ONE LIST
+===============================================================
+  16 x 16       favicon
+  32 x 32       favicon
+  48 x 48       favicon
+  180 x 180     apple touch icon
+  192 x 192     android icon
+  512 x 512     android icon + maskable
+  1024 x 1024   icon master
+  400 x 100     logo lockup @1x / email header
+  800 x 200     logo lockup @2x
+  1200 x 300    logo lockup @3x
+  2400 x 600    lockup master (light + dark)
+  1200 x 630    social / OG image
+  1200 x 600    twitter card
+  600 x 200     tenant company logo   (upload, max 5 MB)
+  480 x 270     tenant stamp          (upload, max 2 MB)
+  480 x 270     tenant signature      (upload, max 2 MB)
+
+
+===============================================================
+GENERATION PROMPTS FOR THE 4 MASTERS
+===============================================================
+
+--- MASTER 1 — Icon-only mark (1024 x 1024, transparent) ---
+CONCEPT: an abstract "root / upward growth" mark, not a document icon.
+Every invoicing app uses a page/sheet icon; this trades that cliche for
+one bold geometric symbol built around the word ROOT itself.
+
+"A bold, minimal abstract logomark for a premium invoicing SaaS brand
+called INVROOT. Do NOT use a document, page, invoice sheet, folded
+corner, or checkmark - avoid any literal paper/invoice imagery
+entirely. Instead: a single clean geometric symbol made of 2-3 straight
+or gently curved lines branching upward from one point, like a
+simplified root or growth mark - evoking 'root' as foundation and
+upward growth. The mark must be bold, solid, single-color, radically
+simple - the level of reduction and confidence of a Nike swoosh or an
+airline tail-fin mark, not an illustration. Rendered as one solid shape
+in bright gold (#D4AF37), centered on a solid deep navy (#0D1B2A)
+rounded-square (squircle) background, generous padding on all sides.
+Flat vector style, no gradients, no shadows, no outline-only strokes -
+must read as a bold, instantly recognizable mark even shrunk to 16px.
+Professional, premium, financial/fintech feel, confident and simple,
+zero clutter."
+
+--- MASTER 2 — Lockup for light backgrounds (2400 x 600, transparent) ---
+"A horizontal logo lockup for a premium B2B invoicing SaaS brand called
+INVROOT. On the left, a small bold abstract mark: 2-3 clean lines
+branching upward from a single point, like a simplified root/growth
+symbol - NOT a document or page icon, no literal paper imagery -
+filled as one solid shape in deep navy (#0D1B2A). To the right of the
+mark, the wordmark 'INVROOT' in a bold, modern, geometric sans-serif
+(like Inter Bold or Space Grotesk Bold), all capital letters, solid
+deep navy (#0D1B2A), tight letter-spacing. Every letter must be fully
+solid, ordinary type - no hollow letters, no circles or holes cut into
+any letter, no decorative treatment on individual characters.
+Optionally add ONE small gold (#8A6D1F) accent only - for example a
+short underline beneath the wordmark - and nothing more. Flat vector
+design, transparent background, generous whitespace, no shadows, no
+gradients. Confident, premium, minimal fintech aesthetic."
+
+--- MASTER 3 — Lockup for dark backgrounds (2400 x 600, transparent) ---
+"Same horizontal lockup as above - the abstract branching root/growth
+mark on the left (2-3 clean lines from one point, NOT a document or
+page icon), the 'INVROOT' wordmark in bold geometric sans-serif on the
+right - but recolored for a dark navy background: the mark is solid
+bright gold (#D4AF37), and the wordmark 'INVROOT' is solid white.
+Every letter must be fully solid ordinary type - no hollow letters, no
+circles or holes cut into any letter. Transparent background so it sits
+cleanly on a deep navy (#0D1B2A) surface. Same flat vector style, no
+shadows, no gradients."
+
+--- MASTER 4 — Social share image (1200 x 630) ---
+"A wide social-share preview image (1200x630) for a billing/invoicing
+SaaS product called INVROOT. Deep navy background (#0D1B2A) with a
+subtle darker navy (#060E15) radial gradient glow in one corner. On the
+left third, the INVROOT logo lockup in white with a bright gold
+(#D4AF37) accent - the abstract branching root mark plus the wordmark.
+On the right two-thirds, a clean abstract illustration suggesting
+invoices/documents: 2-3 overlapping simplified invoice cards at a
+slight angle, drawn as minimal white and gold outlines, no readable
+text on the cards. Below or beside the logo, a short tagline in white,
+smaller weight: 'Billing, Simplified.' Premium fintech aesthetic, lots
+of negative space, flat design, no photos, no 3D, no gradients on the
+invoice cards themselves - only the background may carry a subtle
+gradient."
+
+
+===============================================================
+WHERE EACH FILE PLUGS IN
+===============================================================
+favicon.svg              index.html <link rel="icon">
+                         (already referenced, file is MISSING today —
+                          this is why the browser tab has no icon)
+apple-touch-icon.png     index.html <link rel="apple-touch-icon">  (not added yet)
+android-chrome-*.png     manifest.json                             (does not exist yet)
+og-image.png             index.html <meta property="og:image">     (not added yet)
+logo-horizontal-dark.svg Layout.jsx sidebar — currently falls back
+                         to the plain text "INVROOT" when a tenant has
+                         no logo; that fallback should become this file
+logo-horizontal*.svg     LoginPage.jsx / SignupPage.jsx brand row —
+                         currently a generic document glyph from the
+                         iconoir library, not a real logo file
+logo-email-header.png    src/lib/email.js templates (backend)

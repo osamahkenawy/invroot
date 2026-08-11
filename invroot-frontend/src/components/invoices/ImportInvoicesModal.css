@@ -1,0 +1,148 @@
+/* Historical invoice import. A wide sheet, because the preview table IS the
+   feature — a narrow modal would hide the reasons rows were rejected. */
+
+.imp-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(10, 18, 30, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+
+.imp-sheet {
+  background: #fff;
+  border-radius: 18px;
+  width: 100%; max-width: 980px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+}
+
+.imp-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #0D1B2A, #1e3448);
+  color: #fff;
+}
+.imp-bar-title { font-size: 16px; font-weight: 700; }
+.imp-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.1); color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+.imp-body { padding: 22px 24px; overflow: auto; flex: 1; }
+
+.imp-lead { font-size: 14px; color: #384d68; margin: 0 0 12px; line-height: 1.55; }
+.imp-points { margin: 0 0 20px; padding-inline-start: 20px; color: #5b6b81; font-size: 13px; line-height: 1.75; }
+
+.imp-drop {
+  border: 2px dashed #cfd8e3;
+  border-radius: 14px;
+  padding: 34px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.imp-drop:hover { border-color: #b8912f; background: #fdfaf3; }
+.imp-drop svg { width: 30px; height: 30px; color: #98a6b8; }
+.imp-drop-main { font-size: 14px; font-weight: 600; color: #16233a; margin-top: 8px; }
+.imp-drop-sub  { font-size: 12px; color: #8b98a9; margin-top: 3px; }
+
+.imp-template {
+  margin-top: 14px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: 0; padding: 6px 0;
+  color: #b8912f; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.imp-template svg { width: 15px; height: 15px; }
+
+.imp-error {
+  margin-top: 14px; padding: 11px 14px;
+  background: #fdeceb; border: 1px solid #f5c6c2; border-radius: 10px;
+  color: #96201a; font-size: 13px;
+}
+.imp-busy { margin-top: 18px; display: flex; align-items: center; gap: 10px; color: #5b6b81; font-size: 13px; }
+
+.imp-summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid #eef2f6;
+}
+.imp-file { font-size: 13px; font-weight: 600; color: #16233a; }
+.imp-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.imp-stat {
+  font-size: 12px; font-weight: 600;
+  padding: 4px 10px; border-radius: 20px;
+  background: #f0f3f8; color: #4a5a70;
+}
+.imp-stat-ok  { background: #e6f6ec; color: #1c7a3e; }
+.imp-stat-bad { background: #fdeceb; color: #96201a; }
+
+.imp-check {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: #384d68;
+  margin-bottom: 14px;
+}
+
+.imp-table-wrap { overflow-x: auto; border: 1px solid #eef2f6; border-radius: 12px; }
+.imp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.imp-table th {
+  text-align: start; padding: 10px 12px;
+  background: #f7f9fc; color: #7b8798;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.imp-table td { padding: 10px 12px; border-top: 1px solid #f0f3f8; vertical-align: top; color: #26364d; }
+.imp-num  { text-align: end; white-space: nowrap; }
+.imp-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+
+/* Rejected rows must be findable at a glance in a list of hundreds. */
+.imp-row-invalid, .imp-row-failed { background: #fffafa; }
+.imp-row-skipped { opacity: .62; }
+
+.imp-badge {
+  display: inline-block;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 20px;
+  background: #f0f3f8; color: #4a5a70;
+}
+.imp-badge-ready    { background: #e6f6ec; color: #1c7a3e; }
+.imp-badge-imported { background: #1c7a3e; color: #fff; }
+.imp-badge-invalid,
+.imp-badge-failed   { background: #fdeceb; color: #96201a; }
+
+.imp-note { font-size: 11.5px; line-height: 1.5; margin-top: 4px; color: #7b8798; max-width: 380px; }
+.imp-note-bad  { color: #96201a; }
+.imp-note-warn { color: #8a6a1a; }
+
+.imp-warnbar {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 14px; padding: 11px 14px;
+  background: #fdf7e8; border: 1px solid #ecd9a6; border-radius: 10px;
+  color: #6d5312; font-size: 12.5px;
+}
+.imp-warnbar svg { width: 17px; height: 17px; flex: 0 0 auto; }
+
+.imp-done {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 14px; padding: 12px 14px;
+  background: #e6f6ec; border: 1px solid #b6e0c4; border-radius: 10px;
+  color: #1c7a3e; font-size: 13px; font-weight: 600;
+}
+.imp-done svg { width: 18px; height: 18px; }
+
+.imp-foot {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 15px 24px;
+  border-top: 1px solid #eef2f6;
+  background: #fbfcfe;
+}
+
+@media (max-width: 640px) {
+  .imp-overlay { padding: 0; }
+  .imp-sheet { max-height: 100vh; border-radius: 0; }
+  .imp-note { max-width: none; }
+}

@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import saApi from '../../lib/saApi.js';
+import { fmtAmt } from './saFormat.js';
 import './SuperAdminLayout.css';
 
+/* Keys must match the payments.method enum:
+   cash | bank_transfer | card | check | stripe | paypal | other */
 const METHOD_COLORS = {
-  cash:         { bg:'#dcfce7', color:'#16a34a' },
-  bank_transfer:{ bg:'#dbeafe', color:'#2563eb' },
-  credit_card:  { bg:'#f3e8ff', color:'#7c3aed' },
-  stripe:       { bg:'#fce7f3', color:'#be185d' },
-  cheque:       { bg:'#fef3c7', color:'#d97706' },
+  cash:          { bg:'#dcfce7', color:'#16a34a' },
+  bank_transfer: { bg:'#dbeafe', color:'#2563eb' },
+  card:          { bg:'#f3e8ff', color:'#7c3aed' },
+  stripe:        { bg:'#fce7f3', color:'#be185d' },
+  check:         { bg:'#fef3c7', color:'#d97706' },
+  paypal:        { bg:'#e0f2fe', color:'#0369a1' },
+  other:         { bg:'#f1f5f9', color:'#475569' },
 };
-function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
+
+const fmt = (n, cur) => fmtAmt(n, cur, 2);
 
 export default function SAPayments() {
   const [rows,     setRows]     = useState([]);
@@ -42,12 +48,18 @@ export default function SAPayments() {
 
   useEffect(() => { load(); }, [load]);
 
+
+  // The cross-tenant total only carries a currency label when every visible row
+  // shares one; otherwise it would imply a conversion that never happened.
+  const currencies = [...new Set(rows.map(r => r.currency).filter(Boolean))];
+  const uniformCur = currencies.length === 1 ? currencies[0] : '';
+
   return (
     <div>
       <div className="sa-page-header">
         <div>
           <h1 className="sa-page-title">All Payments</h1>
-          <p className="sa-page-sub">{total} transactions · {fmt(totalAmt)} collected</p>
+          <p className="sa-page-sub">{total} transactions · {fmt(totalAmt, uniformCur)} collected</p>
         </div>
       </div>
 
@@ -76,16 +88,16 @@ export default function SAPayments() {
             </thead>
             <tbody>
               {rows.map(p => {
-                const mc = METHOD_COLORS[p.payment_method] || { bg:'#f1f5f9', color:'#374151' };
+                const mc = METHOD_COLORS[p.method] || { bg:'#f1f5f9', color:'#374151' };
                 return (
                   <tr key={p.id}>
                     <td className="td-mono">{p.payment_date?.slice(0,10)}</td>
-                    <td style={{ fontWeight:600, fontSize:12 }}>{p.company_name}</td>
+                    <td style={{ fontWeight:600, fontSize:12 }}>{p.tenant_name}</td>
                     <td className="td-mono">{p.invoice_number}</td>
-                    <td className="td-amt">{fmt(p.amount)}</td>
+                    <td className="td-amt">{fmt(p.amount, p.currency)}</td>
                     <td>
                       <span className="sa-status-badge" style={{ background:mc.bg, color:mc.color }}>
-                        {p.payment_method?.replace('_',' ')}
+                        {p.method?.replace('_',' ')}
                       </span>
                     </td>
                     <td className="td-mono">{p.reference_number || '—'}</td>

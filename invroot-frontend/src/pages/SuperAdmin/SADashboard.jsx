@@ -4,8 +4,22 @@ import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
 /* ── Helpers ── */
-function fmtAmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }); }
+/* Tenants bill in different currencies, so amounts are labelled with the
+   currency they belong to rather than a hardcoded '$'. */
+function fmtAmt(n, currency = '') {
+  const v = Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return currency ? `${currency} ${v}` : v;
+}
 function fmtN(n)   { return Number(n || 0).toLocaleString(); }
+
+/* '2026-07' → 'Jul' (a plain slice(0,3) rendered every bar as "202"). */
+function monthLabel(ym) {
+  if (!ym) return '';
+  const [y, m] = String(ym).split('-');
+  if (!m) return String(ym).slice(0, 3);
+  const d = new Date(Number(y), Number(m) - 1, 1);
+  return isNaN(d) ? ym : d.toLocaleDateString('en-US', { month: 'short' });
+}
 
 /* ── KPI icons (inline SVG) ── */
 const KIco = {
@@ -122,10 +136,16 @@ export default function SADashboard() {
   if (!data)   return <div className="sa-empty">Failed to load data.</div>;
 
   const k   = data.kpis || {};
+  const byCurrency = data.revenue_by_currency || [];
+  // Report in the currency most revenue is billed in; if tenants span several,
+  // the breakdown below makes the split explicit instead of faking one total.
+  const primaryCur  = byCurrency[0]?.currency || '';
+  const multiCur    = byCurrency.length > 1;
+
   const trend = (data.revenue_trend || []).map(row => ({
-    label:   (row.month || '').slice(0, 3),
+    label:   monthLabel(row.month),
     value:   Number(row.revenue),
-    display: fmtAmt(row.revenue),
+    display: fmtAmt(row.revenue, primaryCur),
   }));
 
   const activePct = k.total_tenants > 0 ? Math.round(k.active_tenants / k.total_tenants * 100) : 0;
@@ -140,8 +160,8 @@ export default function SADashboard() {
         </div>
         <div className="sa-welcome-stats">
           <div className="sa-welcome-stat">
-            <div className="sa-welcome-stat-val">{fmtAmt(k.total_revenue)}</div>
-            <div className="sa-welcome-stat-label">Total Revenue</div>
+            <div className="sa-welcome-stat-val">{fmtAmt(k.total_revenue, primaryCur)}</div>
+            <div className="sa-welcome-stat-label">{multiCur ? 'Revenue (all currencies)' : 'Total Revenue'}</div>
           </div>
           <div className="sa-welcome-stat">
             <div className="sa-welcome-stat-val">{fmtN(k.total_tenants)}</div>
@@ -171,7 +191,7 @@ export default function SADashboard() {
             <div className="sa-kpi-icon-box green">{KIco.revenue}</div>
             <span className="sa-kpi-delta neu">{fmtN(k.total_payments)} txns</span>
           </div>
-          <div className="sa-kpi-value">{fmtAmt(k.total_revenue)}</div>
+          <div className="sa-kpi-value">{fmtAmt(k.total_revenue, primaryCur)}</div>
           <div className="sa-kpi-label">Platform Revenue</div>
         </div>
 
@@ -201,6 +221,29 @@ export default function SADashboard() {
           <div className="sa-kpi-label">Registered Users</div>
         </div>
       </div>
+
+      {/* ── Revenue by currency ──
+          Shown whenever tenants bill in more than one currency, so the headline
+          total is never mistaken for a single-currency figure. */}
+      {multiCur && (
+        <div className="sa-card" style={{ marginBottom: 20 }}>
+          <div className="sa-card-header">
+            <div>
+              <div className="sa-card-title">Revenue by Currency</div>
+              <div className="sa-card-subtitle">Tenants bill in different currencies — totals are not converted</div>
+            </div>
+          </div>
+          <div className="sa-cur-grid">
+            {byCurrency.map(c => (
+              <div key={c.currency} className="sa-cur-item">
+                <div className="sa-cur-code">{c.currency}</div>
+                <div className="sa-cur-total">{fmtAmt(c.total, c.currency)}</div>
+                <div className="sa-cur-sub">{fmtN(c.payments)} payments</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Chart row ── */}
       <div className="sa-two-col" style={{ marginBottom: 20 }}>
@@ -266,7 +309,7 @@ export default function SADashboard() {
                   </div>
                 </div>
                 <div className="sa-ranked-right">
-                  <div className="sa-ranked-amt">{fmtAmt(t.total_revenue)}</div>
+                  <div className="sa-ranked-amt">{fmtAmt(t.total_revenue, t.currency)}</div>
                   <div className="sa-ranked-sub">{fmtN(t.invoice_count)} invoices</div>
                 </div>
                 <Link to={`/admin/tenants/${t.id}`} className="sa-btn sa-btn-ghost sa-btn-sm" style={{ marginLeft: 8 }}>

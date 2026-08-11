@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
-function fmtAmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }); }
+import { fmtAmt } from './saFormat.js';
+import CreateTenantModal from './CreateTenantModal.jsx';
 
 const AVATAR_COLORS = ['#3b82f6','#10b981','#7c3aed','#d63a17','#0891b2','#f59e0b','#ec4899','#14b8a6'];
 const avatarColor   = (name = '') => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
@@ -24,6 +25,7 @@ export default function SATenants() {
   const [status,  setStatus]   = useState('');
   const [plan,    setPlan]     = useState('');
   const [page,    setPage]     = useState(1);
+  const [creating, setCreating] = useState(false);
   const LIMIT = 15;
 
   const load = useCallback(() => {
@@ -69,7 +71,15 @@ export default function SATenants() {
           <h1 className="sa-page-title">Tenants</h1>
           <p className="sa-page-sub">{total} companies registered on the platform</p>
         </div>
+        <button className="sa-btn sa-btn-primary" onClick={() => setCreating(true)}>+ New Tenant</button>
       </div>
+
+      {creating && (
+        <CreateTenantModal
+          onClose={() => setCreating(false)}
+          onCreated={load}
+        />
+      )}
 
       <div className="sa-card">
         <div className="sa-toolbar">
@@ -143,7 +153,7 @@ export default function SATenants() {
                     <td style={{ fontWeight: 600 }}>{t.user_count}</td>
                     <td style={{ fontWeight: 600 }}>{t.invoice_count}</td>
                     <td>
-                      <div className="td-amt">{fmtAmt(t.total_revenue)}</div>
+                      <div className="td-amt">{fmtAmt(t.total_revenue, t.currency)}</div>
                       <div className="sa-mini-bar-wrap">
                         <div className="sa-mini-bar" style={{ width:`${revPct}%`, background: `linear-gradient(90deg, ${bg}, ${bg}88)` }} />
                       </div>

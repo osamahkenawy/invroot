@@ -212,3 +212,40 @@
 @media (max-width: 600px) {
   .dash-fin-row { grid-template-columns: 1fr; }
 }
+
+/* ── Insights row: top clients + AR aging ───────────── */
+.dash-insights-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+@media (max-width: 900px) { .dash-insights-row { grid-template-columns: 1fr; } }
+.dash-insight-card { padding: 0; }
+
+.dash-topclients { padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+.dash-tc-row { display: flex; align-items: center; gap: 12px; }
+.dash-tc-rank {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px;
+  background: var(--bg-soft, #f2f5fa); color: var(--text-muted);
+  font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.dash-tc-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); min-width: 90px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-tc-bar-track { flex: 1; height: 8px; background: var(--bg-soft, #eef1f6); border-radius: 5px; overflow: hidden; }
+.dash-tc-bar-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--primary), var(--secondary, #8A6D1F)); }
+.dash-tc-val { font-size: 13px; font-weight: 700; color: var(--text-primary); min-width: 84px; text-align: end; }
+
+.dash-aging-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin: 14px 20px 18px; background: var(--bg-soft, #eef1f6); }
+.dash-aging-bar > div { height: 100%; }
+.dash-aging-empty { width: 100%; }
+.dash-aging-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; padding: 0 20px; }
+.dash-aging-leg { display: flex; align-items: center; gap: 8px; }
+.dash-aging-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.dash-aging-leg-label { font-size: 12.5px; color: var(--text-secondary, #64708a); }
+.dash-aging-leg-val { margin-inline-start: auto; font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.dash-aging-total {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 16px 20px 20px; padding-top: 14px; border-top: 1px solid var(--border-soft, #eef1f6);
+  font-size: 13px; color: var(--text-muted);
+}
+.dash-aging-total strong { font-size: 16px; color: var(--text-primary); }

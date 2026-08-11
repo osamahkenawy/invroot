@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { Plus, Edit, Trash, Xmark, Archive, Check } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 
 export default function Catalog() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
+  const { tenant } = useContext(AuthContext);
   const [items,    setItems]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState('');
@@ -25,8 +29,9 @@ export default function Catalog() {
 
   const deleteItem = async (id) => {
     if (!confirm(t('common.confirm_delete'))) return;
-    await api.delete(`/catalog/${id}`);
-    fetchItems();
+    const res = await api.delete(`/catalog/${id}`);
+    if (res.success) { showToast(t('common.deleted_success')); fetchItems(); }
+    else showToast(res.message || t('common.delete_failed'), 'error');
   };
 
   const categories = [...new Set(items.map(i => i.category).filter(Boolean))];
@@ -85,7 +90,7 @@ export default function Catalog() {
                       <td><strong>{item.name}</strong>{item.description && <div style={{ fontSize:12, color:'var(--text-muted)' }}>{item.description}</div>}</td>
                       <td className="td-mono hide-mobile">{item.sku || '—'}</td>
                       <td className="hide-mobile">{item.category || '—'}</td>
-                      <td className="td-amount">{fmtCurrency(item.unit_price)}</td>
+                      <td className="td-amount">{fmtCurrency(item.unit_price, tenant?.currency)}</td>
                       <td>{item.tax_rate || 0}%</td>
                       <td>{item.is_service ? <Check style={{ color:'var(--success)' }} /> : '—'}</td>
                       <td className="td-actions" onClick={e => e.stopPropagation()}>
@@ -106,7 +111,7 @@ export default function Catalog() {
                       <div className="m-card-title">{item.name}</div>
                       <div className="m-card-sub">{item.category || (item.is_service ? t('catalog.service') : t('catalog.product'))}</div>
                     </div>
-                    <span className="td-amount" style={{ fontSize:16, fontWeight:800 }}>{fmtCurrency(item.unit_price)}</span>
+                    <span className="td-amount" style={{ fontSize:16, fontWeight:800 }}>{fmtCurrency(item.unit_price, tenant?.currency)}</span>
                   </div>
                   {item.description && <div className="m-card-row"><span className="m-card-label">{item.description}</span></div>}
                   <div className="m-card-row">
@@ -134,7 +139,11 @@ export default function Catalog() {
         <CatalogItemModal
           item={editing === 'new' ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); fetchItems(); }}
+          onSaved={(wasNew) => {
+            setEditing(null);
+            showToast(t(wasNew ? 'common.created_success' : 'common.updated_success'));
+            fetchItems();
+          }}
         />
       )}
       <button className="fab" onClick={() => setEditing('new')}><Plus /></button>
@@ -170,7 +179,7 @@ function CatalogItemModal({ item, onClose, onSaved }) {
       ? await api.post('/catalog', payload)
       : await api.put(`/catalog/${item.id}`, payload);
     setSaving(false);
-    if (res.success) onSaved(); else setError(res.message || 'Error');
+    if (res.success) onSaved(isNew); else setError(res.message || 'Error');
   };
 
   const UNITS = ['pcs','hr','kg','m','l','box','set','month','day'];

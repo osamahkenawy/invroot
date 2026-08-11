@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api.js';
+import { useToastContext } from '../context/ToastContext.jsx';
 import Loader from '../components/Loader.jsx';
 import { Plus, Edit, Trash } from 'iconoir-react';
 
 export default function Tax() {
   const { t } = useTranslation();
+  const { showToast } = useToastContext();
   const [rates, setRates]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(null);
@@ -17,7 +19,10 @@ export default function Tax() {
   useEffect(() => { fetch(); }, []);
 
   const handleDelete = async (id) => {
-    if (confirm(t('common.confirm'))) { await api.delete(`/tax/${id}`); fetch(); }
+    if (!confirm(t('common.confirm'))) return;
+    const res = await api.delete(`/tax/${id}`);
+    if (res.success) { showToast(t('common.deleted_success')); fetch(); }
+    else showToast(res.message || t('common.delete_failed'), 'error');
   };
 
   return (
@@ -63,12 +68,17 @@ export default function Tax() {
         )}
       </div>
 
-      {modal && <TaxModal rate={modal.id ? modal : null} onClose={() => setModal(null)} onSave={() => { setModal(null); fetch(); }} />}
+      {modal && <TaxModal rate={modal.id ? modal : null} onClose={() => setModal(null)} onSave={(wasNew) => {
+        setModal(null);
+        showToast(t(wasNew ? 'common.created_success' : 'common.updated_success'));
+        fetch();
+      }} />}
     </div>
   );
 }
 
 function TaxModal({ rate, onClose, onSave }) {
+  const { showToast } = useToastContext();
   const { t } = useTranslation();
   const [form, setForm] = useState({ name: rate?.name || '', rate: rate?.rate || '', type: rate?.type || 'VAT', is_inclusive: rate?.is_inclusive || false, is_default: rate?.is_default || false });
   const [saving, setSaving] = useState(false);
@@ -77,8 +87,9 @@ function TaxModal({ rate, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
     const res = rate ? await api.put(`/tax/${rate.id}`, form) : await api.post('/tax', form);
-    if (res.success) onSave();
     setSaving(false);
+    if (res.success) onSave(!rate);
+    else showToast(res.message || t('common.save_failed'), 'error');
   };
 
   return (

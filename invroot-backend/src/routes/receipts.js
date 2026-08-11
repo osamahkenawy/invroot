@@ -3,6 +3,8 @@ import { query } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
 import { generateReceiptPdf } from '../lib/pdf.js';
+import { getTenantWithBranding } from '../lib/branding.js';
+import { failure } from '../lib/api-error.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -46,7 +48,7 @@ router.get('/', async (req, res) => {
 
     res.json({ success: true, data: rows, total, total_amount, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    failure(res, err, { context: 'receipts' });
   }
 });
 
@@ -66,7 +68,7 @@ router.get('/:id', async (req, res) => {
     if (!receipt) return res.status(404).json({ success: false, message: 'Receipt not found' });
     res.json({ success: true, data: receipt });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    failure(res, err, { context: 'receipts' });
   }
 });
 
@@ -85,19 +87,19 @@ router.get('/:id/pdf', async (req, res) => {
     );
     if (!receipt) return res.status(404).json({ success: false, message: 'Receipt not found' });
 
-    const [tenant] = await query('SELECT * FROM tenants WHERE id = ?', [req.tenantId]);
-    const [sig] = await query(
-      'SELECT signature_url, name AS signatory_name, title AS signatory_title FROM company_signatories WHERE tenant_id = ? AND is_default = 1 LIMIT 1',
-      [req.tenantId]
-    );
-    const tenantBranding = { ...(tenant || {}), ...(sig || {}) };
-    const pdf = await generateReceiptPdf(receipt, tenantBranding, req.query.lang || tenant?.lang || 'en');
+    /* Via getTenantWithBranding, never a raw `SELECT * FROM tenants`.
+       tenants.logo_url holds a storage key, not a URL, so the raw row put
+       `<img src="tenants/42/logos/ab12.png">` into the PDF — unresolvable in a
+       renderer whose HTML arrives through setContent(), so every receipt
+       carried a broken image where the tenant's logo belongs. */
+    const tenantBranding = await getTenantWithBranding(req.tenantId);
+    const pdf = await generateReceiptPdf(receipt, tenantBranding, req.query.lang || tenantBranding?.lang || 'en');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="receipt-${receipt.receipt_number}.pdf"`);
     res.send(pdf);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    failure(res, err, { context: 'receipts' });
   }
 });
 

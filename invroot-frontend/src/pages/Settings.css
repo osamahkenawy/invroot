@@ -74,6 +74,25 @@
 .settings-section-head p { font-size: 13px; color: var(--text-muted); margin: 2px 0 0; }
 .ss-icon { width: 28px; height: 28px; color: var(--primary); flex-shrink: 0; }
 
+.onboarding-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: var(--radius-xl);
+  background: var(--gradient-primary);
+  color: #fff;
+}
+.onboarding-banner-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+}
+.onboarding-banner-icon svg { width: 22px; height: 22px; }
+.onboarding-banner h4 { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+.onboarding-banner p { font-size: 13px; color: rgba(255,255,255,0.85); margin: 0; }
+
 /* ══ Settings cards ════════════════════════════════════ */
 .settings-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; }
 
@@ -89,7 +108,20 @@
 }
 
 .settings-form { display: flex; flex-direction: column; gap: 16px; }
-.settings-actions { display: flex; justify-content: flex-start; padding: 4px 0 8px; }
+
+/* Save sits ABOVE the fields, not below them.
+   Every settings form is long enough to scroll — Company runs past two full
+   screens — so a button at the end of the DOM is a button you have to go
+   looking for after every edit. `order: -1` lifts it to the top of the form in
+   all five sections at once, which keeps each form's markup untouched: the
+   button stays inside its <form>, so it is still the submit control and Enter
+   still works. Right-aligned to read as a toolbar action against the section
+   heading rather than a stray control floating above the first card. */
+.settings-actions {
+  order: -1;
+  display: flex; justify-content: flex-end;
+  padding: 0 0 4px;
+}
 
 /* ══ Upload zone ═══════════════════════════════════════ */
 .upload-zone {
@@ -216,55 +248,282 @@
 .num-format-label { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
 .num-format-desc { font-size: 12px; color: var(--text-muted); }
 
-/* ── CountrySelect ──────────────────────────────────── */
+/* ── CountrySelect ──────────────────────────────────────
+   Kept visually in step with the PhoneInput control that
+   sits beside it, so Country and Phone read as siblings.  */
 .cs-wrap { position: relative; width: 100%; }
 
 .cs-trigger {
   width: 100%; display: flex; align-items: center; gap: 8px;
-  border: 1px solid var(--border); border-radius: 8px;
-  padding: 9px 12px; background: var(--bg-main);
-  font-size: 13.5px; color: var(--text-primary);
-  cursor: pointer; text-align: left; transition: border-color .2s;
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 8px 12px; background: var(--bg-card);
+  font-family: var(--font); font-size: 14px; color: var(--text-primary);
+  cursor: pointer; text-align: start;
+  transition: border-color .15s, box-shadow .15s;
 }
-.cs-trigger:hover, .cs-trigger.open { border-color: var(--primary); }
+.cs-trigger:hover { border-color: var(--primary); }
+.cs-trigger.open,
+.cs-trigger:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(13, 27, 42, 0.1);
+  outline: none;
+}
 .cs-flag { font-size: 18px; line-height: 1; flex-shrink: 0; }
 .cs-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-placeholder { flex: 1; color: var(--text-muted); }
-.cs-arrow { width: 14px; height: 14px; color: var(--text-muted); margin-left: auto; flex-shrink: 0; transition: transform .2s; }
+.cs-arrow { width: 14px; height: 14px; color: var(--text-muted); margin-inline-start: auto; flex-shrink: 0; transition: transform .2s; }
 .cs-trigger.open .cs-arrow { transform: rotate(180deg); }
 
 .cs-dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 500;
+  position: absolute; top: calc(100% + 6px); inset-inline-start: 0; right: 0; z-index: 600;
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  border-radius: 12px; box-shadow: 0 12px 36px rgba(13, 27, 42, .16);
   overflow: hidden;
+  animation: cs-pop .14s ease-out;
+}
+@keyframes cs-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-dropdown { animation: none; }
+  .cs-arrow { transition: none; }
 }
 
 .cs-search-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  padding: 11px 14px; border-bottom: 1px solid var(--border-soft);
   background: var(--bg-soft);
 }
 .cs-search-row svg { color: var(--text-muted); flex-shrink: 0; }
 .cs-search {
-  flex: 1; border: none; outline: none; background: transparent;
-  font-size: 13px; color: var(--text-primary);
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  font-family: var(--font); font-size: 13.5px; color: var(--text-primary);
 }
 
 .cs-list {
-  max-height: 220px; overflow-y: auto;
+  max-height: 264px; overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 5px;
 }
-.cs-list::-webkit-scrollbar { width: 4px; }
+.cs-list::-webkit-scrollbar { width: 5px; }
 .cs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .cs-option {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 14px; cursor: pointer; transition: background .12s;
+  padding: 9px 11px; border-radius: 8px;
+  cursor: pointer; transition: background .12s;
 }
 .cs-option:hover { background: var(--hover-bg); }
-.cs-option.active { background: #eef3ff; }
-.cs-option .cs-flag { font-size: 20px; }
-.cs-oname { flex: 1; font-size: 13.5px; color: var(--text-primary); }
+.cs-option.active { background: var(--gold-wash, #FBF3DC); }
+.cs-option .cs-flag { font-size: 19px; }
+.cs-oname { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-ocode { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: .04em; }
-.cs-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.cs-option.active .cs-ocode { color: var(--secondary); }
+.cs-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+/* "Use <typed>" — the row that keeps the city dropdown from trapping anyone
+   whose city isn't in the bundled list. Separated so it reads as a different
+   kind of choice from the listed cities above it. */
+.cs-option-custom { border-top: 1px solid var(--border); }
+.cs-option-custom .cs-oname { color: var(--text-secondary, #64708a); font-style: italic; }
+
+/* Match the phone control to this form's compact input sizing. */
+.settings-form .ph-wrap {
+  --ph-pad-y:  8px;
+  --ph-pad-x:  12px;
+  --ph-radius: 7px;
+  --ph-border: 1px;
+  --ph-font:   14px;
+}
+
+/* ── Security: sessions & login history ─────────────── */
+.sessions-list { display: flex; flex-direction: column; }
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.session-row:last-child { border-bottom: none; }
+.session-icon {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.session-icon svg { width: 20px; height: 20px; }
+.session-info { flex: 1; min-width: 0; }
+.session-device { font-weight: 600; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.session-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.session-current-badge {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  color: #16a34a; background: #16a34a1a; padding: 2px 8px; border-radius: 20px;
+}
+.session-revoke { color: var(--danger); }
+.login-history-table { margin-top: 4px; }
+.login-history-table td { font-size: 13px; }
+
+/* ══ My Profile ══════════════════════════════════════════ */
+
+.profile-hero {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  padding: 22px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--primary, #0D1B2A) 7%, transparent) 0%, transparent 60%),
+    var(--surface, #fff);
+}
+
+/* The drop target is the circle itself, so the affordance and the target are
+   the same thing rather than a separate dashed box. */
+.profile-hero-avatar { position: relative; border-radius: 50%; }
+.profile-hero-avatar.is-dragging { outline: 2px dashed var(--primary, #0D1B2A); outline-offset: 6px; }
+
+.profile-avatar-btn {
+  position: relative;
+  padding: 0; border: none; background: none;
+  cursor: pointer; line-height: 0; border-radius: 50%;
+}
+.profile-avatar-btn:disabled { cursor: default; opacity: .65; }
+.profile-avatar-btn .user-avatar {
+  border: 3px solid var(--surface, #fff);
+  box-shadow: 0 2px 10px rgba(0,0,0,.14);
+}
+.profile-avatar-btn .user-avatar--initials {
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  letter-spacing: .5px;
+}
+
+.profile-avatar-badge {
+  position: absolute;
+  right: 2px; bottom: 2px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--primary, #0D1B2A);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--surface, #fff);
+  transition: transform .12s ease;
+}
+.profile-avatar-badge svg { width: 14px; height: 14px; }
+.profile-avatar-btn:hover:not(:disabled) .profile-avatar-badge { transform: scale(1.1); }
+[dir="rtl"] .profile-avatar-badge { right: auto; left: 2px; }
+
+.profile-avatar-spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: profile-spin .7s linear infinite;
+}
+@keyframes profile-spin { to { transform: rotate(360deg); } }
+
+.profile-hero-body { flex: 1; min-width: 0; }
+.profile-hero-name {
+  font-size: 21px; font-weight: 700; line-height: 1.2;
+  color: var(--text, #0f172a);
+}
+.profile-hero-mail {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: 5px; font-size: 13px; color: var(--text-muted, #64748b);
+}
+.profile-hero-mail > svg { width: 14px; height: 14px; flex-shrink: 0; }
+.profile-hero-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 11px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+}
+.pill svg { width: 11px; height: 11px; }
+.pill-ok    { background: #dcfce7; color: #15803d; }
+.pill-warn  { background: #fef3c7; color: #b45309; }
+.pill-owner { background: #fef9c3; color: #a16207; }
+.pill-muted { background: var(--surface-2, #f1f5f9); color: var(--text-muted, #64748b); }
+
+.profile-hero-actions {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-top: 14px;
+}
+.link-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 0; border: none; background: none;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--primary, #0D1B2A);
+  cursor: pointer;
+}
+.link-btn svg { width: 13px; height: 13px; }
+.link-btn:hover:not(:disabled) { text-decoration: underline; }
+.link-btn:disabled { opacity: .5; cursor: default; }
+.link-btn--danger { color: var(--danger, #dc2626); }
+.profile-hero-hint { font-size: 11.5px; color: var(--text-muted, #94a3b8); }
+.profile-avatar-error { margin-top: 12px; }
+
+/* At-a-glance strip. auto-fit keeps it readable from phone to desktop without
+   a media query per breakpoint. */
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.profile-fact {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface, #fff);
+}
+.profile-fact > svg { width: 17px; height: 17px; color: var(--text-muted, #94a3b8); flex-shrink: 0; }
+.profile-fact span  { display: block; font-size: 11px; color: var(--text-muted, #94a3b8); }
+.profile-fact strong{ display: block; font-size: 13px; font-weight: 600; margin-top: 2px; }
+
+/* Password strength */
+.pw-meter { margin-top: 7px; }
+.pw-meter-track {
+  height: 4px; border-radius: 3px;
+  background: var(--surface-2, #e2e8f0);
+  overflow: hidden;
+}
+.pw-meter-fill { height: 100%; border-radius: 3px; transition: width .2s ease, background .2s ease; }
+.pw-s0, .pw-s1 { background: #dc2626; }
+.pw-s2         { background: #f59e0b; }
+.pw-s3         { background: #eab308; }
+.pw-s4         { background: #16a34a; }
+.pw-s5         { background: #15803d; }
+.pw-meter-text { margin-top: 5px; font-size: 11.5px; color: var(--text-muted, #64748b); }
+.pw-mismatch   { margin-top: 6px; font-size: 11.5px; color: var(--danger, #dc2626); }
+
+@media (max-width: 640px) {
+  .profile-hero { flex-direction: column; align-items: center; text-align: center; }
+  .profile-hero-mail, .profile-hero-tags, .profile-hero-actions { justify-content: center; }
+}
+
+/* ── Upload zones ────────────────────────────────────────
+   Logo and stamp save the moment a file is chosen, so the zone itself has to
+   show that something is happening — there is no longer a button to disable. */
+.upload-zone.is-busy {
+  opacity: .6;
+  cursor: progress;
+  pointer-events: none;
+}
+.upload-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}

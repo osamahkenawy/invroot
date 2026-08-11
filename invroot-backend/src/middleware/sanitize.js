@@ -45,6 +45,13 @@ export function sanitizeDeep(input) {
  * Express middleware — cleans req.body of XSS payloads.
  */
 export function sanitizeBody(req, _res, next) {
+  /* Never touch a raw body. `typeof Buffer === 'object'`, so the deep walk below
+     used to iterate a Buffer's bytes and hand back a plain object of index→byte
+     pairs. That destroyed the exact bytes Stripe signs, so every webhook failed
+     verification with "Invalid signature" — the endpoint could not work at all,
+     regardless of which signing secret was configured. */
+  if (Buffer.isBuffer(req.body)) return next();
+
   if (req.body && typeof req.body === 'object') {
     req.body = sanitizeDeep(req.body);
   }

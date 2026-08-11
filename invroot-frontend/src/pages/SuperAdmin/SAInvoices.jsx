@@ -3,7 +3,8 @@ import saApi from '../../lib/saApi.js';
 import './SuperAdminLayout.css';
 
 const INV_STATUS = { paid:'sa-status-paid', overdue:'sa-status-overdue', draft:'sa-status-draft', sent:'sa-status-sent', partial:'sa-status-partial' };
-function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }); }
+import { fmtAmt } from './saFormat.js';
+const fmt = (n, cur) => fmtAmt(n, cur, 2);
 
 export default function SAInvoices() {
   const [rows,      setRows]      = useState([]);
@@ -43,12 +44,18 @@ export default function SAInvoices() {
 
   const pages = Math.ceil(total / LIMIT);
 
+
+  // The cross-tenant total only carries a currency label when every visible row
+  // shares one; otherwise it would imply a conversion that never happened.
+  const currencies = [...new Set(rows.map(r => r.currency).filter(Boolean))];
+  const uniformCur = currencies.length === 1 ? currencies[0] : '';
+
   return (
     <div>
       <div className="sa-page-header">
         <div>
           <h1 className="sa-page-title">All Invoices</h1>
-          <p className="sa-page-sub">{total} invoices · {fmt(totalAmt)} total</p>
+          <p className="sa-page-sub">{total} invoices · {fmt(totalAmt, uniformCur)} total</p>
         </div>
       </div>
 
@@ -85,9 +92,9 @@ export default function SAInvoices() {
               {rows.map(inv => (
                 <tr key={inv.id}>
                   <td className="td-mono">{inv.invoice_number}</td>
-                  <td style={{ fontWeight:600, fontSize:12 }}>{inv.company_name}</td>
+                  <td style={{ fontWeight:600, fontSize:12 }}>{inv.tenant_name}</td>
                   <td>{inv.client_name}</td>
-                  <td className="td-amt">{fmt(inv.total_amount)}</td>
+                  <td className="td-amt">{fmt(inv.total_amount, inv.currency)}</td>
                   <td><span className={`sa-badge ${inv.status || 'draft'}`}>{inv.status}</span></td>
                   <td className="td-mono">{inv.issue_date?.slice(0,10)}</td>
                   <td className="td-mono">{inv.due_date?.slice(0,10)}</td>

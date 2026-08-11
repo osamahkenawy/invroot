@@ -2,6 +2,7 @@ import express from 'express';
 import { query, execute } from '../lib/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { tenantMiddleware } from '../middleware/tenant.js';
+import { failure } from '../lib/api-error.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -30,7 +31,7 @@ router.get('/', async (req, res) => {
     );
     const [{ total }] = await query(`SELECT COUNT(*) as total FROM time_entries t WHERE ${where}`, params);
     res.json({ success: true, data: rows, total });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 /* GET /api/time-tracking/summary */
@@ -45,7 +46,7 @@ router.get('/summary', async (req, res) => {
        FROM time_entries WHERE tenant_id = ?`, [req.tenantId]
     );
     res.json({ success: true, data: row });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 /* POST /api/time-tracking */
@@ -60,7 +61,7 @@ router.post('/', async (req, res) => {
        hours, hourly_rate || 0, entry_date || new Date().toISOString().slice(0,10), status || 'unbilled']
     );
     res.status(201).json({ success: true, id: result.insertId });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 /* PUT /api/time-tracking/:id */
@@ -75,7 +76,7 @@ router.put('/:id', async (req, res) => {
     );
     if (!result.affectedRows) return res.status(404).json({ success: false, message: 'Entry not found' });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 /* POST /api/time-tracking/:id/mark-billed */
@@ -86,7 +87,7 @@ router.post('/:id/mark-billed', async (req, res) => {
       [req.body.invoice_id || null, req.params.id, req.tenantId]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 /* DELETE /api/time-tracking/:id */
@@ -94,7 +95,7 @@ router.delete('/:id', async (req, res) => {
   try {
     await execute('DELETE FROM time_entries WHERE id=? AND tenant_id=?', [req.params.id, req.tenantId]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { failure(res, err, { context: 'time-tracking' }); }
 });
 
 export default router;
