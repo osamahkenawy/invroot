@@ -152,11 +152,31 @@ router.post('/signature', requireOwner, uploadAny.single('signature'), async (re
       buffer: req.file.buffer, originalName: req.file.originalname, contentType: req.file.mimetype,
     });
     const { signatory_name, signatory_title, is_default } = req.body;
+
+    /* The first signature a tenant uploads becomes their default.
+       Only the DEFAULT signatory is rendered on documents — getTenantWithBranding
+       selects `WHERE is_default = 1`. Without this, someone uploads their one
+       and only signature, the request succeeds, and it then never appears on a
+       single invoice: no error, no explanation, just an unsigned PDF. Choosing
+       a default is meaningful when there are several to choose between; with
+       one, it is a question the product should not be asking. */
+    const [{ existing }] = await query(
+      'SELECT COUNT(*) AS existing FROM company_signatories WHERE tenant_id = ? AND is_default = 1',
+      [req.tenantId]
+    );
+    const makeDefault = is_default ? 1 : (existing ? 0 : 1);
+
+    // Only one default at a time, or the document renderer picks arbitrarily.
+    if (makeDefault) {
+      await execute('UPDATE company_signatories SET is_default = 0 WHERE tenant_id = ?', [req.tenantId]);
+    }
+
     const result = await execute(
       `INSERT INTO company_signatories (tenant_id, name, title, signature_url, is_default)
        VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE name=VALUES(name), title=VALUES(title), signature_url=VALUES(signature_url)`,
-      [req.tenantId, signatory_name, signatory_title, signatureKey, is_default ? 1 : 0]
+       ON DUPLICATE KEY UPDATE name=VALUES(name), title=VALUES(title),
+                               signature_url=VALUES(signature_url), is_default=VALUES(is_default)`,
+      [req.tenantId, signatory_name, signatory_title, signatureKey, makeDefault]
     );
     res.json({ success: true, id: result.insertId, signature_url: await resolveAssetUrl(signatureKey, 'signatures') });
   } catch (err) {
