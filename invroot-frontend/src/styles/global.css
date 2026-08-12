@@ -600,15 +600,37 @@ textarea.field-input { resize: vertical; min-height: 80px; }
   flex-wrap: wrap;
 }
 .stat-box {
-  flex: 1;
-  min-width: 120px;
+  /* 200px, not 120px. These boxes hold formatted currency. Measured at the
+     value's own weight and size, "AED 245,406.00" needs 150px and a 7-figure
+     "AED 3,460,674.00" needs 166px; 32px of horizontal padding puts the floor
+     at 198px. The old 120px left just 88px of content space, so as soon as
+     flex squeezed the row the amount was cut mid-number — "AED 245,406.0(" on
+     a credit-note dialog, where misreading the figure costs real money.
+     Three of these plus gaps still fit one row in a standard modal. */
+  flex: 1 1 200px;
+  min-width: 200px;
   background: var(--bg-main);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
 }
-.stat-box-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 4px; }
-.stat-box-val   { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+/* Reserves two lines so a label that wraps ("Available to credit") keeps its
+   amount on the same baseline as its neighbours. */
+.stat-box-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--text-muted);
+  margin-bottom: 4px; min-height: 2em; line-height: 1.25;
+}
+.stat-box-val {
+  font-size: 18px; font-weight: 800; color: var(--text-primary);
+  margin-top: auto;
+  /* Digits line up column-to-column, and a long amount breaks rather than
+     spilling past the border. */
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
 
 /* ── Action button bar ──────────────────────────────── */
 .action-bar {
