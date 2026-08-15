@@ -47,6 +47,28 @@ import SAUsers          from './pages/SuperAdmin/SAUsers.jsx';
 import SAAnalytics      from './pages/SuperAdmin/SAAnalytics.jsx';
 import SACoupons       from './pages/SuperAdmin/SACoupons.jsx';
 
+// Marketing site (invroot.com)
+import LandingLayout   from './pages/Landing/LandingLayout.jsx';
+import Home            from './pages/Landing/Home.jsx';
+import FeaturesPage    from './pages/Landing/FeaturesPage.jsx';
+import PricingPage     from './pages/Landing/PricingPage.jsx';
+import HowItWorksPage  from './pages/Landing/HowItWorksPage.jsx';
+import FaqPage         from './pages/Landing/FaqPage.jsx';
+import InvoicingUaePage from './pages/Landing/InvoicingUaePage.jsx';
+import { PAGES, LANGS, routeFor } from './pages/Landing/pages.js';
+
+/* Built from the same table that generates the sitemap and the prerendered
+   HTML, so the router cannot drift from either. A sitemap advertising a route
+   the app does not serve is a soft 404 in Search Console. */
+const LANDING_ELEMENTS = {
+  home: <Home />,
+  features: <FeaturesPage />,
+  pricing: <PricingPage />,
+  'how-it-works': <HowItWorksPage />,
+  faq: <FaqPage />,
+  'invoicing-uae': <InvoicingUaePage />,
+};
+
 function SuperAdminRoute({ children }) {
   const token = localStorage.getItem('sa_token');
   if (!token) return <Navigate to="/admin/login" replace />;
@@ -84,6 +106,18 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Marketing site. English at /, Arabic at /ar — a URL per language,
+             because a language reachable only through a toggle is a language a
+             crawler cannot index. LandingLayout sends an already-signed-in
+             visitor straight to /dashboard, so this stays the front door
+             without becoming a detour for existing users. */}
+          <Route element={<LandingLayout />}>
+            {LANGS.flatMap(lng => PAGES.map(p => (
+              <Route key={`${lng}:${p.key}`} path={routeFor(lng, p.path)}
+                     element={LANDING_ELEMENTS[p.key]} />
+            )))}
+          </Route>
+
           {/* Public */}
           <Route path="/login"          element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/signup"         element={<PublicRoute><SignupPage /></PublicRoute>} />
@@ -96,7 +130,6 @@ export default function App() {
 
           {/* Protected */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/"              element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard"     element={<Dashboard />} />
             <Route path="/clients"       element={<Clients />} />
             <Route path="/clients/:id/statement" element={<ClientStatement />} />

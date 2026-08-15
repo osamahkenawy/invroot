@@ -13,6 +13,7 @@ import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
 import './Invoices.css';
 import '../components/invoices/InvoiceFormModal.css';
+import { CURRENCIES } from '../data/currencies.js';
 
 /* Shares the invoice list chrome (Invoices.css) so both documents read the
    same way — same cards, same toolbar, same table. */
@@ -460,7 +461,7 @@ function QuoteFormModal({ quote, onClose, onSaved }) {
             <div className="form-group">
               <label>{t('common.currency')}</label>
               <select value={form.currency} onChange={setF('currency')}>
-                {['SAR','USD','EUR','AED','GBP','KWD'].map(c => <option key={c}>{c}</option>)}
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>

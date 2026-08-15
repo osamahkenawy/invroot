@@ -8,6 +8,7 @@ import api from '../lib/api';
 import { useToastContext } from '../context/ToastContext.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
 import './Expenses.css';
+import { CURRENCIES } from '../data/currencies.js';
 
 const CATEGORIES = ['Rent','Utilities','Salaries','Marketing','Travel','Supplies','Software','Maintenance','Other'];
 const STATUS_TABS = ['all','unpaid','paid','overdue','draft'];
@@ -220,7 +221,7 @@ export default function Expenses() {
                 <div className="exp-form-group">
                   <label>{t('common.currency')}</label>
                   <select value={form.currency || 'SAR'} onChange={e => setForm(f => ({...f, currency: e.target.value}))}>
-                    {['SAR','USD','EUR','GBP','AED'].map(c => <option key={c}>{c}</option>)}
+                    {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="exp-form-group">

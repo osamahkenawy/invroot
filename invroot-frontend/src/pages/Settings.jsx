@@ -17,6 +17,7 @@ import {
 import UserAvatar from '../components/UserAvatar.jsx';
 import BillingSettings from './settings/BillingSettings.jsx';
 import './Settings.css';
+import { CURRENCIES } from '../data/currencies.js';
 
 /* ── Country → Currency mapping ────────────────────── */
 const COUNTRY_CURRENCY = {
@@ -46,19 +47,6 @@ const COUNTRY_CURRENCY = {
   ZA:'ZAR',ZM:'ZMW',ZW:'ZWL',
 };
 
-const ALL_CURRENCIES = [
-  'AED','AFN','ALL','AMD','ANG','AOA','ARS','AUD','AZN','BAM','BBD','BDT','BGN',
-  'BHD','BIF','BND','BOB','BRL','BSD','BTN','BWP','BYN','BZD','CAD','CHF','CLP',
-  'CNY','COP','CRC','CUP','CVE','CZK','DJF','DKK','DOP','DZD','EGP','ERN','ETB',
-  'EUR','FJD','GBP','GEL','GHS','GMD','GNF','GTQ','GYD','HNL','HTG','HUF','IDR',
-  'ILS','INR','IQD','IRR','ISK','JMD','JOD','JPY','KES','KGS','KHR','KMF','KWD',
-  'KYD','KZT','LAK','LBP','LKR','LRD','LYD','MAD','MDL','MGA','MKD','MMK','MNT',
-  'MRU','MUR','MVR','MWK','MXN','MYR','MZN','NAD','NGN','NIO','NOK','NPR','NZD',
-  'OMR','PAB','PEN','PGK','PHP','PKR','PLN','PYG','QAR','RON','RSD','RUB','RWF',
-  'SAR','SBD','SCR','SDG','SEK','SGD','SLL','SOS','SRD','SSP','STN','SYP','SZL',
-  'THB','TJS','TMT','TND','TOP','TRY','TTD','TZS','UAH','UGX','USD','UYU','UZS',
-  'VES','VND','VUV','WST','XAF','XCD','XOF','YER','ZAR','ZMW',
-];
 
 /* ── CountrySelect component ─────────────────────────── */
 function CountrySelect({ value, onChange }) {
@@ -522,7 +510,7 @@ function CompanySettings() {
           <div className="form-row">
             <div className="form-group"><label>{t('settings.default_currency')}</label>
               <select value={form.currency || 'SAR'} onChange={set('currency')}>
-                {ALL_CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="form-group"><label>{t('settings.default_language')}</label>

@@ -9,8 +9,8 @@ import BrandAssetModal from '../BrandAssetModal.jsx';
 import PhoneInput, { stripDialOnly } from '../PhoneInput.jsx';
 import { Plus, Trash, Xmark, Copy, User, WarningTriangle, Upload } from 'iconoir-react';
 import './InvoiceFormModal.css';
+import { CURRENCIES } from '../../data/currencies.js';
 
-const CURRENCIES = ['SAR','USD','EUR','GBP','AED','KWD','QAR','EGP','OMR','BHD'];
 const DUE_OPTIONS = [
   { days: 0,  key: 'on_receipt'  },
   { days: 7  },

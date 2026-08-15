@@ -12,6 +12,7 @@ import {
 } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import './Clients.css';
+import { CURRENCIES } from '../data/currencies.js';
 
 function balanceClass(val) {
   const n = parseFloat(val) || 0;
@@ -20,7 +21,6 @@ function balanceClass(val) {
   return 'high';
 }
 
-const CURRENCIES = ['SAR','USD','EUR','GBP','AED','KWD','QAR'];
 
 export default function Clients() {
   const { t } = useTranslation();

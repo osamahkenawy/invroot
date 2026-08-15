@@ -1007,7 +1007,19 @@
     "rec_search_lines": "Search description, reference or amount…",
     "rec_no_matches": "Nothing matches that search.",
     "match_need_payment": "Select a payment first",
-    "match_need_line": "Now select the matching bank line"
+    "match_need_line": "Now select the matching bank line",
+    "pay_section": "Payment details",
+    "pay_hint": "Printed on invoices so your customer knows where to pay.",
+    "account_holder": "Account holder name",
+    "iban": "IBAN",
+    "swift": "SWIFT / BIC",
+    "branch": "Branch",
+    "routing_code": "Routing / sort code",
+    "ph_holder": "Name exactly as the bank holds it",
+    "ph_branch": "Branch name or city",
+    "ph_routing": "Routing number, sort code, IFSC, BSB…",
+    "show_on_invoices": "Show these details on invoices",
+    "show_on_invoices_hint": "Only one account can be shown. Choosing this one clears any other."
   },
   "time_tracking": {
     "log_time": "Log Time",
@@ -1143,5 +1155,329 @@
       "due_date": "the due date",
       "payment_date": "the payment date"
     }
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "signin": "Sign in",
+      "start": "Start free",
+      "menu": "Menu",
+      "close": "Close menu",
+      "skip": "Skip to content"
+    },
+    "lang": {
+      "other": "العربية",
+      "label": "Switch language"
+    },
+    "hero": {
+      "eyebrow": "Invoicing for businesses anywhere",
+      "title1": "Invoice faster.",
+      "title2": "Get paid sooner.",
+      "lead": "Create professional invoices in Arabic or English, send payment links, and track every payment — all from one beautiful workspace.",
+      "ctaPrimary": "Start invoicing free",
+      "ctaSecondary": "Watch 60-sec demo",
+      "reassure": "No card required · Set up in minutes · Tax-ready",
+      "shotAlt": "The Invroot dashboard, showing receivables and recent invoices",
+      "phoneAlt": "An Invroot payment confirmation on iPhone",
+      "stats": {
+        "collectedValue": "AED 148,962",
+        "collectedLabel": "collected",
+        "ontimeValue": "92%",
+        "ontimeLabel": "paid on time"
+      }
+    },
+    "features": {
+      "kicker": "What you get",
+      "title": "Everything billing needs, nothing it doesn’t",
+      "lead": "Five things Invroot does properly. Every one of them is a screen you can reach on the free plan.",
+      "cta": "See all features",
+      "items": [
+        {
+          "tag": "Invoicing",
+          "title": "Send an invoice in under a minute",
+          "short": "Client, lines, done. Tax, numbering and totals handle themselves.",
+          "body": "Pick a client, add your lines, and Invroot handles the tax, the numbering and the running total. Save it and choose whether to email it, download the PDF, or share a payment link.",
+          "points": [
+            "Your own tax rates, applied per line",
+            "Sequential, gap-free numbering",
+            "Quotes that convert to invoices",
+            "Invoice in 140 currencies"
+          ]
+        },
+        {
+          "tag": "Your brand",
+          "title": "PDFs that look like your company, not ours",
+          "short": "Your logo, stamp and signature on every document you send.",
+          "body": "Upload your logo, stamp and signature once. Every invoice, quote and receipt carries them — the documents your client receives are yours end to end.",
+          "points": [
+            "Logo, stamp and signature",
+            "Your terms and footer",
+            "Three document templates"
+          ]
+        },
+        {
+          "tag": "Arabic & English",
+          "title": "Full right-to-left, not a translation layer",
+          "short": "The whole interface flips to Arabic, and so does the invoice.",
+          "body": "Switch the whole interface to Arabic, and issue each invoice in the language its recipient reads. Layout, numerals and document direction all follow.",
+          "points": [
+            "Per-invoice language",
+            "RTL layout throughout",
+            "Arabic PDF output"
+          ]
+        },
+        {
+          "tag": "Getting paid",
+          "title": "Know what you are owed, and chase it",
+          "short": "Receivables, overdue and cash flow on one screen.",
+          "body": "Receivables, overdue and cash flow on one screen, so the question “who still owes us?” has an answer you can act on.",
+          "points": [
+            "Receivables and ageing",
+            "Cash flow at a glance",
+            "Automatic payment reminders"
+          ]
+        },
+        {
+          "tag": "Banking",
+          "title": "Make the books and the bank agree",
+          "short": "Match your records against the bank statement, line by line.",
+          "body": "Match each payment you recorded against the credit on your statement. Invroot suggests the likely pairs; you decide, because a wrong match is far more expensive to unpick than a right one is to make.",
+          "points": [
+            "Suggested matches by amount and date",
+            "One click to confirm",
+            "Nothing matched without you"
+          ]
+        }
+      ]
+    },
+    "steps": {
+      "kicker": "How it works",
+      "title": "Three steps from job done to money in",
+      "lead": "No setup project and no accountant required. This is the whole flow.",
+      "cta": "How it works in detail",
+      "items": [
+        {
+          "t": "Add your client",
+          "d": "Name, tax ID and terms. Once, then reuse.",
+          "detail": "Name, tax ID, address and payment terms — entered once, then reused on every document that follows. If you already keep a client list, import it rather than retyping it."
+        },
+        {
+          "t": "Build the invoice",
+          "d": "Lines, tax and totals calculated as you type.",
+          "detail": "Choose the client, add your lines, and watch your tax rates, the line totals and the invoice total settle as you type. The number is assigned in sequence with no gaps — a gap in a tax-registered numbering series is a question you would rather not answer later."
+        },
+        {
+          "t": "Send and get paid",
+          "d": "Email it, or share a link your client can pay from.",
+          "detail": "Save, then choose how it goes out: email it with your branding, download the PDF, or share a link your client can pay from. Reminders chase the ones that go quiet, so you do not have to."
+        }
+      ]
+    },
+    "mobile": {
+      "kicker": "On your phone",
+      "title": "Your receivables, in your pocket",
+      "body": "Check what you are owed, review an invoice and record a payment from the site, the office or the car.",
+      "shotAlt": "Invroot running on iPhone",
+      "points": [
+        "See what you are owed at a glance",
+        "Review and send an invoice from the job site",
+        "Record a payment the moment it lands"
+      ]
+    },
+    "pricing": {
+      "kicker": "Pricing",
+      "title": "Start free. Pay when it earns its keep.",
+      "lead": "One paid plan, with everything a growing business bills with.",
+      "cta": "Compare plans",
+      "strip": "Free to start · Starter from {{currency}} {{price}} a month · Enterprise on request",
+      "popular": "Most popular",
+      "month": "/month",
+      "note": "Billed in AED, excluding tax. Cancel any time.",
+      "free": {
+        "name": "Free trial",
+        "price": "Free",
+        "sub": "Try everything, no card needed",
+        "points": [
+          "One real invoice, yours to send",
+          "Every feature unlocked",
+          "No payment details required"
+        ],
+        "cta": "Start free"
+      },
+      "starter": {
+        "name": "Starter",
+        "sub": "For a growing business",
+        "limits": "Up to {{clients}} clients and {{users}} team members",
+        "points": [
+          "Invoices, quotes and receipts",
+          "Branded PDFs with stamp & signature",
+          "Payment links and reminders",
+          "Tax handling and financial reports"
+        ],
+        "cta": "Get started"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "sub": "For larger operations",
+        "points": [
+          "Everything in Starter, without limits",
+          "Onboarding and data migration",
+          "Custom integrations",
+          "Dedicated account manager"
+        ],
+        "cta": "Contact sales"
+      }
+    },
+    "faq": {
+      "kicker": "Questions",
+      "title": "Answers before you sign up",
+      "lead": "If yours is not here, email support@invroot.com and a person will reply.",
+      "cta": "Read all questions",
+      "items": [
+        {
+          "q": "Can it handle my country's tax rules?",
+          "a": "You define your own tax rates — any name, any percentage, inclusive or compound, as many as you need. Invoices carry your tax ID, apply your rates per line, and show the tax total separately, which is the format most jurisdictions require."
+        },
+        {
+          "q": "Can I issue invoices in Arabic?",
+          "a": "Yes. The whole interface switches to Arabic with proper right-to-left layout, and you choose the language per invoice, so an Arabic client gets an Arabic document."
+        },
+        {
+          "q": "Which currencies can I invoice in?",
+          "a": "All 140 ISO currency codes, chosen per invoice and per client, so you can bill a customer in their money and keep your books in yours. Your own subscription is billed in AED wherever you are."
+        },
+        {
+          "q": "What happens on the free plan?",
+          "a": "You can try every feature and send one real invoice to a real client. When you need more, Starter lifts the limits."
+        },
+        {
+          "q": "Do I need a card to start?",
+          "a": "No. The free plan needs no payment details at all. You only enter a card if you choose to subscribe."
+        },
+        {
+          "q": "Can my whole team use it?",
+          "a": "Starter includes up to five team members on one workspace, each with their own sign-in."
+        },
+        {
+          "q": "Is there a mobile app?",
+          "a": "Yes — check receivables, review invoices and record payments from your phone."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Send your first invoice today",
+      "body": "Free to start, no card, and your first real invoice is on us.",
+      "button": "Create your account"
+    },
+    "uae": {
+      "crumb": "UAE invoicing",
+      "kicker": "Invoicing in the UAE",
+      "title": "VAT invoicing software for the UAE",
+      "lead": "Issue tax invoices in Arabic and English with your TRN, 5% VAT and AED handled for you — and bill overseas clients in their own currency from the same account.",
+      "intro": {
+        "title": "Built for how UAE businesses bill",
+        "body": "A UAE tax invoice has to carry the right details: your Tax Registration Number, the VAT charged, the total in AED and, for many customers, an Arabic version. Invroot puts those on every document by default, so a compliant invoice is the normal output — not a template you have to assemble."
+      },
+      "features": {
+        "title": "Everything a UAE invoice needs, on by default",
+        "items": [
+          {
+            "tag": "VAT",
+            "title": "5% VAT, calculated automatically",
+            "body": "Set 5% once and it applies per line, with the VAT amount and the total shown separately the way a tax invoice requires. Zero-rated and exempt lines are supported for the cases that need them."
+          },
+          {
+            "tag": "TRN",
+            "title": "Your TRN on every tax invoice",
+            "body": "Add your Tax Registration Number once and it prints on every invoice, quote and receipt — and you can record your client's TRN too, for a proper business-to-business tax invoice."
+          },
+          {
+            "tag": "Arabic",
+            "title": "Arabic tax invoices, fully right-to-left",
+            "body": "Issue the same invoice in Arabic with correct right-to-left layout, Arabic numerals and a translated document — not a font swap on an English page."
+          },
+          {
+            "tag": "AED & 140 currencies",
+            "title": "Bill in AED, or in your client's money",
+            "body": "Invoice in dirhams for local customers and in any of 140 currencies for clients abroad, while your own subscription is billed in AED wherever you are."
+          },
+          {
+            "tag": "Documents",
+            "title": "The tax-invoice format, branded as yours",
+            "body": "Every PDF is laid out as a tax invoice and carries your logo, stamp and signature, your terms and your footer — the document your customer receives is yours end to end."
+          },
+          {
+            "tag": "Getting paid",
+            "title": "Payment links and automatic reminders",
+            "body": "Share a link your client can pay from, and let Invroot chase what goes overdue, so the dirhams you have invoiced actually land."
+          }
+        ]
+      },
+      "faq": {
+        "title": "UAE invoicing questions",
+        "items": [
+          {
+            "q": "Does Invroot handle UAE VAT at 5%?",
+            "a": "Yes. Define a 5% VAT rate and Invroot applies it per line, shows the VAT amount separately and totals the invoice in AED — the structure a UAE tax invoice needs. You can also add zero-rated or exempt lines where they apply."
+          },
+          {
+            "q": "Can I show my TRN on the invoice?",
+            "a": "Yes. Your Tax Registration Number appears on every invoice, quote and receipt, and you can record your customer's TRN as well for a business-to-business tax invoice."
+          },
+          {
+            "q": "Can I issue invoices in Arabic?",
+            "a": "Yes. The interface switches to Arabic with full right-to-left layout, and you choose the language per invoice, so an Arabic-speaking client receives an Arabic document."
+          },
+          {
+            "q": "Can I bill clients outside the UAE?",
+            "a": "Yes. Invoice international clients in any of 140 currencies while keeping your books and your own subscription in AED — the same account serves local and overseas customers."
+          },
+          {
+            "q": "Is there a free way to try it?",
+            "a": "Yes. Start free with no card and send one real invoice to a real client, then move to Starter when you need more."
+          }
+        ]
+      }
+    },
+    "footer": {
+      "tagline": "Billing, simplified — for businesses anywhere.",
+      "product": "Product",
+      "company": "Company",
+      "contact": "Contact",
+      "enterprise": "Enterprise",
+      "rights": "All rights reserved.",
+      "byline": "A Trasealla Solutions product"
+    },
+    "seo": {
+      "home": {
+        "title": "Invroot — Invoicing Software in Arabic and English, Any Tax Rate",
+        "description": "Create tax-ready invoices in Arabic and English, in ten currencies, branded with your own logo and stamp. Send payment links and track what you are owed. Free to start, no card required."
+      },
+      "features": {
+        "title": "Features — Branded Invoices, Arabic RTL, Bank Reconciliation | Invroot",
+        "description": "Everything Invroot does: one-minute invoices with your own tax rates applied automatically, 140 currencies, branded PDF documents with your stamp and signature, full Arabic right-to-left, receivables tracking and bank reconciliation."
+      },
+      "how-it-works": {
+        "title": "How Invroot Works — From Job Done to Money In, in Three Steps",
+        "description": "Add a client once, build the invoice while tax and totals calculate themselves, then email it or share a payment link. See how businesses invoice with Invroot."
+      },
+      "pricing": {
+        "title": "Pricing — Free Trial, Starter Plan, Enterprise | Invroot",
+        "description": "Start free with one real invoice and no card. Starter covers invoices, quotes, receipts, branded PDFs and payment links for a growing business. Enterprise plans on request."
+      },
+      "faq": {
+        "title": "FAQ — Tax Rates, Currencies, Arabic Invoices and Plans | Invroot",
+        "description": "Answers about setting your own tax rates, the 140 currencies you can invoice in, issuing invoices in Arabic, what the free plan includes, team seats, and the mobile app."
+      },
+      "invoicing-uae": {
+        "title": "UAE Invoicing Software — VAT Tax Invoices in Arabic & English | Invroot",
+        "description": "Create UAE tax invoices with your TRN, 5% VAT and AED handled automatically. Invoice in Arabic or English, send payment links, and bill overseas clients in 140 currencies. Free to start, no card required."
+      }
+    },
+    "proof": "Trusted by growing businesses around the world"
   }
 }

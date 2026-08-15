@@ -1,0 +1,41 @@
+# invroot.com
+#
+# The marketing pages are the front door and are meant to be indexed. Every
+# other route on this origin is either behind a session, a one-time token, or
+# a form with no content of its own — none of it belongs in a search index, and
+# tokenised links (/pay/:token, /portal) should never be crawled at all.
+
+User-agent: *
+
+Disallow: /admin
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /clients
+Disallow: /catalog
+Disallow: /invoices
+Disallow: /quotes
+Disallow: /payments
+Disallow: /receipts
+Disallow: /credit-notes
+Disallow: /recurring
+Disallow: /tax
+Disallow: /reports
+Disallow: /settings
+Disallow: /integrations
+Disallow: /audit
+Disallow: /expenses
+Disallow: /banking
+Disallow: /time-tracking
+Disallow: /reminders
+Disallow: /portal
+Disallow: /pay/
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /change-password
+
+Allow: /
+
+Sitemap: https://invroot.com/sitemap.xml

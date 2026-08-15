@@ -6,13 +6,19 @@ import { useToastContext } from '../context/ToastContext.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
 import Reconcile from '../components/banking/Reconcile.jsx';
 import './Banking.css';
+import { CURRENCIES } from '../data/currencies.js';
 
 const fmtAmt = (v, cur = 'SAR') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, minimumFractionDigits: 2 }).format(v || 0);
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'cash'];
-const CURRENCIES = ['SAR', 'USD', 'EUR', 'GBP', 'AED'];
-const emptyAccForm = { name: '', account_number: '', bank_name: '', currency: 'SAR', balance: '', account_type: 'checking', notes: '' };
+const emptyAccForm = {
+  name: '', account_number: '', bank_name: '', currency: 'SAR', balance: '',
+  account_type: 'checking', notes: '',
+  // Printed on invoices; see the "payment details" block in the modal.
+  account_holder: '', iban: '', swift: '', branch: '', routing_code: '',
+  show_on_invoices: false,
+};
 const emptyTxForm  = { type: 'credit', amount: '', description: '', reference: '', transaction_date: '' };
 
 export default function Banking() {
@@ -203,6 +209,57 @@ export default function Banking() {
                 <div className="bnk-form-group span2">
                   <label>{t('common.notes')}</label>
                   <textarea rows={2} value={accForm.notes || ''} onChange={e => setAccForm(f => ({...f, notes: e.target.value}))} />
+                </div>
+
+                {/* Details a customer pays into. Separate from the fields
+                    above, which describe the account for reconciliation —
+                    these are the ones that get printed and read by someone
+                    else, so they are worth entering carefully. */}
+                <div className="bnk-form-sep span2">
+                  <span>{t('banking.pay_section')}</span>
+                  <small>{t('banking.pay_hint')}</small>
+                </div>
+                <div className="bnk-form-group span2">
+                  <label>{t('banking.account_holder')}</label>
+                  <input value={accForm.account_holder || ''}
+                         onChange={e => setAccForm(f => ({...f, account_holder: e.target.value}))}
+                         placeholder={t('banking.ph_holder')} />
+                </div>
+                <div className="bnk-form-group">
+                  <label>{t('banking.iban')}</label>
+                  <input value={accForm.iban || ''} dir="ltr"
+                         onChange={e => setAccForm(f => ({...f, iban: e.target.value}))}
+                         placeholder="AE07 0331 2345 6789 0123 456" />
+                </div>
+                <div className="bnk-form-group">
+                  <label>{t('banking.swift')}</label>
+                  <input value={accForm.swift || ''} dir="ltr"
+                         onChange={e => setAccForm(f => ({...f, swift: e.target.value}))}
+                         placeholder="EBILAEAD" />
+                </div>
+                <div className="bnk-form-group">
+                  <label>{t('banking.branch')}</label>
+                  <input value={accForm.branch || ''}
+                         onChange={e => setAccForm(f => ({...f, branch: e.target.value}))}
+                         placeholder={t('banking.ph_branch')} />
+                </div>
+                {/* One generic field rather than six country-specific ones:
+                    a US routing number, a UK sort code, an Indian IFSC and an
+                    Australian BSB all belong here, and five of six would sit
+                    empty on any given invoice. */}
+                <div className="bnk-form-group">
+                  <label>{t('banking.routing_code')}</label>
+                  <input value={accForm.routing_code || ''} dir="ltr"
+                         onChange={e => setAccForm(f => ({...f, routing_code: e.target.value}))}
+                         placeholder={t('banking.ph_routing')} />
+                </div>
+                <div className="bnk-form-group span2">
+                  <label className="bnk-check">
+                    <input type="checkbox" checked={!!accForm.show_on_invoices}
+                           onChange={e => setAccForm(f => ({...f, show_on_invoices: e.target.checked}))} />
+                    <span>{t('banking.show_on_invoices')}</span>
+                  </label>
+                  <small className="bnk-field-hint">{t('banking.show_on_invoices_hint')}</small>
                 </div>
               </div>
             </div>

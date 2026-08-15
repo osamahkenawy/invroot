@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/currency-parity-check.mjs && node scripts/build-sitemap.mjs && vite build && node scripts/prerender-seo.mjs",
     "preview": "vite preview",
-    "check:i18n": "node scripts/i18n-hook-check.mjs"
+    "check:i18n": "node scripts/i18n-hook-check.mjs",
+    "build:sitemap": "node scripts/build-sitemap.mjs",
+    "check:currency": "node scripts/currency-parity-check.mjs"
   },
   "dependencies": {
     "chart.js": "^4.4.3",

@@ -226,7 +226,13 @@ export default function SignupPage() {
           <div
             key={i}
             className={`su-left-art${i === step ? ' is-active' : ''}`}
-            style={{ backgroundImage: `url(/signup/register-bg-0${i + 1}.webp)` }}
+            /* signup-bg, not signup: a directory in the web root shadows the
+               route of the same name. nginx's try_files matched /signup/ as a
+               real directory, found no index.html in it and returned 403, so
+               invroot.com/signup was unreachable by direct link or refresh —
+               only in-app <Link> clicks worked, because those never reach the
+               server. */
+            style={{ backgroundImage: `url(/signup-bg/register-bg-0${i + 1}.webp)` }}
             aria-hidden="true"
           />
         ))}

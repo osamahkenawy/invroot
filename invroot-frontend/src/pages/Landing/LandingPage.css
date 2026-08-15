@@ -1,0 +1,625 @@
+/* invroot.com — marketing page.
+   Palette is the product's own (brand-assets.txt), not a second identity:
+   navy #0D1B2A, antique gold #8A6D1F on light, bright gold #D4AF37 on dark. */
+
+.lp {
+  --navy:      #0D1B2A;
+  --navy-lt:   #1E3448;
+  --gold:      #8A6D1F;
+  --gold-br:   #D4AF37;
+  --wash:      #FBF3DC;
+  --surface:   #F5F7FA;
+  --ink:       #16233A;
+  --muted:     #64708A;
+  --line:      #E4E9F0;
+
+  background: #fff;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;      /* nothing here may widen the page */
+}
+.lp * { box-sizing: border-box; }
+.lp-wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Buttons ──────────────────────────────────────────── */
+.lp-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 11px 22px; border-radius: 10px;
+  font-size: 14.5px; font-weight: 600; text-decoration: none;
+  border: 1.5px solid transparent; cursor: pointer; white-space: nowrap;
+  transition: transform .08s ease, background .18s ease, border-color .18s ease;
+}
+.lp-btn:active { transform: translateY(1px); }
+.lp-btn-lg   { padding: 14px 30px; font-size: 15.5px; }
+.lp-btn-full { width: 100%; }
+.lp-btn-gold    { background: var(--gold); color: #fff; }
+.lp-btn-gold:hover { background: #6f5718; }
+.lp-btn-outline { border-color: var(--line); color: var(--ink); background: #fff; }
+.lp-btn-outline:hover { border-color: var(--navy); }
+/* Scoped to the hero: the same button class is used on white further down. */
+.lp-hero .lp-btn-outline {
+  border-color: rgba(255,255,255,.3); color: #fff; background: transparent;
+}
+.lp-hero .lp-btn-outline:hover { border-color: #fff; background: rgba(255,255,255,.07); }
+.lp-btn-ghost   { color: var(--ink); }
+.lp-btn-ghost:hover { color: var(--gold); }
+
+/* ── Skip link ────────────────────────────────────────── */
+/* Off-screen until focused: the nav is five links and a language switch, and
+   a keyboard visitor should not have to walk them on every page. */
+.lp-skip {
+  position: absolute; inset-inline-start: -9999px; top: 8px; z-index: 100;
+  background: var(--navy); color: #fff; padding: 10px 18px;
+  border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;
+}
+.lp-skip:focus { inset-inline-start: 12px; }
+
+/* ── Nav ──────────────────────────────────────────────── */
+.lp-nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(255,255,255,.88);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.lp-nav-inner { display: flex; align-items: center; gap: 28px; height: 68px; }
+.lp-brand { display: flex; align-items: center; flex-shrink: 0; }
+.lp-brand img { height: 34px; width: auto; display: block; }
+.lp-nav-links { display: flex; gap: 26px; margin-inline-start: auto; }
+.lp-nav-link {
+  color: var(--muted); text-decoration: none; font-size: 14.5px; font-weight: 500;
+  white-space: nowrap;
+}
+.lp-nav-link:hover { color: var(--ink); }
+/* Now that these are pages rather than anchors, "which one am I on" is a
+   question the nav has to answer. */
+.lp-nav-link.is-active { color: var(--navy); font-weight: 700; }
+.lp-nav-cta { display: flex; gap: 10px; align-items: center; flex-shrink: 0; margin-inline-start: auto; }
+.lp-nav-links + .lp-nav-cta { margin-inline-start: 0; }
+.lp-lang {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 600;
+  white-space: nowrap;
+}
+.lp-lang:hover { border-color: var(--navy); color: var(--navy); }
+
+/* ── Mobile menu ──────────────────────────────────────── */
+.lp-burger {
+  display: none; width: 38px; height: 34px; padding: 8px 7px;
+  background: none; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+  flex-direction: column; justify-content: space-between;
+}
+.lp-burger span { display: block; height: 2px; background: var(--navy); border-radius: 2px; }
+.lp-menu { border-top: 1px solid var(--line); background: #fff; padding: 8px 0 14px; }
+.lp-menu .lp-nav-link { display: block; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+.lp-menu .lp-nav-link:last-child { border-bottom: none; }
+
+/* ── Hero ─────────────────────────────────────────────── */
+/* Light, to match the delivered comp: navy headline on a warm off-white field
+   with a soft gold radial bloom behind the product shot. The dark-framed
+   browser render and the cut-out handset both carry their own shadow, so they
+   read as devices resting on the page rather than flat images. */
+.lp-hero {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 82% 8%, rgba(212,175,55,.14) 0%, rgba(212,175,55,0) 46%),
+    radial-gradient(90% 70% at 0% 0%, rgba(30,52,72,.06) 0%, rgba(30,52,72,0) 50%),
+    linear-gradient(180deg, #FCFBF7 0%, #F6F8FB 100%);
+  padding: 72px 0 84px;
+  color: var(--ink);
+  overflow: hidden;
+}
+/* A faint concentric arc echoing the comp, kept behind everything. */
+.lp-hero::before {
+  content: ''; position: absolute; z-index: 0;
+  top: -18%; inset-inline-end: -8%;
+  width: 720px; height: 720px; max-width: 62vw; max-height: 62vw;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,.22);
+  box-shadow: 0 0 0 26px rgba(212,175,55,.05);
+  pointer-events: none;
+}
+.lp-hero-inner {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 40px; align-items: center;
+}
+.lp-eyebrow {
+  display: inline-block; margin-bottom: 18px;
+  background: rgba(138,109,31,.09); color: var(--gold);
+  border: 1px solid rgba(138,109,31,.22);
+  font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 6px 13px; border-radius: 20px;
+}
+.lp-h1 {
+  margin: 0 0 20px; font-size: clamp(38px, 5.4vw, 62px); line-height: 1.04;
+  font-weight: 800; letter-spacing: -1.4px; color: var(--navy);
+}
+.lp-h1 em { font-style: normal; color: var(--gold); }
+/* Hand-drawn gold swoosh under the second line, as in the comp. The stroke is
+   a background image so it hugs the text baseline and wraps with it. */
+.lp-underline {
+  position: relative; display: inline; color: var(--navy);
+  white-space: nowrap;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='16' viewBox='0 0 300 16' fill='none'%3E%3Cpath d='M4 11C60 4 150 3 296 7' stroke='%23D4AF37' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% .5em;
+  padding-bottom: .12em;
+}
+.lp-lead { margin: 0 0 30px; font-size: 17.5px; line-height: 1.65; color: var(--muted); max-width: 33em; }
+.lp-hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.lp-reassure { margin: 20px 0 0; font-size: 13px; color: #8894A8; }
+
+/* Navy solid CTA + arrow, and the demo button with its round play chip. */
+.lp-btn-navy { background: var(--navy); color: #fff; }
+.lp-btn-navy:hover { background: #16283d; }
+.lp-btn-arrow { margin-inline-start: 9px; }
+.lp-hero .lp-btn-outline {
+  border-color: var(--line); color: var(--ink); background: #fff;
+  box-shadow: 0 2px 8px rgba(13,27,42,.05);
+}
+.lp-hero .lp-btn-outline:hover { border-color: var(--navy); background: #fff; }
+.lp-btn-demo { gap: 2px; }
+.lp-play {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--gold); color: #fff; margin-inline-end: 9px;
+}
+.lp-play svg { margin-inline-start: 1px; }
+
+/* ── Hero stage (dashboard beside phone + floating stats) ─ */
+/* The browser render and the handset sit next to each other, bottoms aligned,
+   with a small overlap so they read as one scene rather than two pasted
+   images. Both are transparent PNGs, so the shadow follows their shape. */
+.lp-hero-stage {
+  position: relative;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.lp-hero-shot { position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; }
+.lp-hero .lp-hero-shot .shot-img {
+  border-radius: 0; box-shadow: none;
+  filter: drop-shadow(0 26px 50px rgba(13,27,42,.22));
+}
+.lp-hero-phone {
+  position: relative; z-index: 2;
+  flex: 0 0 auto; width: 23%; min-width: 104px;
+  margin-inline-start: -5%;
+  margin-bottom: -3%;
+}
+.lp-hero-phone .shot-img {
+  border-radius: 0; box-shadow: none;
+  filter: drop-shadow(0 22px 40px rgba(13,27,42,.30));
+}
+/* Floating metric chips. */
+.lp-stat {
+  position: absolute; z-index: 3;
+  display: flex; align-items: center; gap: 11px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 16px; box-shadow: 0 16px 34px rgba(13,27,42,.16);
+}
+.lp-stat-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(138,109,31,.12); color: var(--gold);
+}
+.lp-stat-ico-ok { background: rgba(34,160,102,.12); color: #1E9E63; }
+.lp-stat-body { display: flex; flex-direction: column; line-height: 1.2; }
+.lp-stat-body strong { font-size: 15.5px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+.lp-stat-body span { font-size: 12px; color: var(--muted); }
+.lp-stat-1 { top: 4%; inset-inline-end: -2%; }
+.lp-stat-2 { top: 36%; inset-inline-end: -7%; }
+
+/* ── Placeholder frames ───────────────────────────────── */
+.shot-img, .shot-ph { width: 100%; height: auto; display: block; border-radius: 14px; }
+.shot-img { object-fit: cover; box-shadow: 0 24px 60px rgba(13,27,42,.16); }
+/* Hero device shadows are set per element in the hero block above. */
+.shot-ph {
+  border: 2px dashed #C8D2E0; background:
+    repeating-linear-gradient(45deg, #FAFBFD 0 12px, #F2F5F9 12px 24px);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.shot-ph-inner { display: flex; flex-direction: column; gap: 5px; padding: 16px; }
+.shot-ph-id   { font-size: 13px; font-weight: 800; color: var(--navy); letter-spacing: .04em; }
+.shot-ph-size { font-size: 12px; font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
+.shot-ph-note { font-size: 12px; color: var(--muted); max-width: 30ch; line-height: 1.45; }
+
+/* ── Social proof ─────────────────────────────────────── */
+.lp-proof { padding: 40px 0 8px; }
+.lp-proof-label {
+  text-align: center; margin: 0 0 22px;
+  font-size: 12px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: #9AA6B8;
+}
+.lp-logos { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.lp-logo { max-width: 150px; flex: 0 1 150px; opacity: .8; }
+
+/* ── Sections ─────────────────────────────────────────── */
+.lp-section { padding: 84px 0; }
+.lp-sec-head { text-align: center; max-width: 700px; margin: 0 auto 58px; }
+.lp-kicker {
+  display: block; margin-bottom: 12px;
+  font-size: 12px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--gold);
+}
+.lp-kicker-light { color: var(--gold-br); }
+.lp-sec-head h2 {
+  margin: 0; font-size: clamp(27px, 3.4vw, 40px); line-height: 1.18;
+  font-weight: 800; letter-spacing: -.9px; color: var(--navy);
+}
+.lp-sec-lead { margin: 16px 0 0; color: var(--muted); font-size: 16.5px; }
+.lp-sec-cta { text-align: center; margin: 46px 0 0; }
+
+/* ── Page masthead (every page but home) ──────────────── */
+.lp-pagehead {
+  position: relative; background: var(--navy); color: #fff;
+  padding: 62px 0 66px; text-align: center;
+}
+.lp-pagehead::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('/landing/hero-bg.webp') center center / cover no-repeat;
+  opacity: .85; pointer-events: none;
+}
+.lp-pagehead > * { position: relative; z-index: 1; }
+.lp-pagehead h1 {
+  margin: 0; font-size: clamp(30px, 4.2vw, 48px); line-height: 1.14;
+  font-weight: 800; letter-spacing: -1.1px; color: #fff;
+}
+.lp-pagehead p {
+  margin: 16px auto 0; max-width: 46em;
+  color: rgba(255,255,255,.74); font-size: 17px;
+}
+
+/* ── Summary cards (home) ─────────────────────────────── */
+/* 300px, not 260: at 260 a 1180px container fits four, which leaves the fifth
+   card alone on its own row. Three-up gives 3 + 2. */
+.lp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.lp-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 26px 24px;
+}
+.lp-card h3 { margin: 0 0 8px; font-size: 18.5px; font-weight: 700; color: var(--navy); line-height: 1.3; }
+.lp-card p  { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+/* ── Feature rows ─────────────────────────────────────── */
+.lp-feature {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: 56px; align-items: center; margin-bottom: 84px;
+}
+.lp-feature:last-child { margin-bottom: 0; }
+/* Alternating sides stop four identical rows reading as a list. */
+.lp-feature-flip .lp-feature-copy { order: 2; }
+.lp-tag {
+  display: inline-block; margin-bottom: 14px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--gold); background: var(--wash); padding: 5px 11px; border-radius: 20px;
+}
+.lp-feature-copy h2 {
+  margin: 0 0 14px; font-size: clamp(22px, 2.5vw, 29px); line-height: 1.25;
+  font-weight: 800; letter-spacing: -.5px; color: var(--navy);
+}
+.lp-feature-copy p { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
+.lp-feature-shot.is-portrait { max-width: 400px; margin-inline: auto; }
+
+.lp-ticks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.lp-ticks li { position: relative; padding-inline-start: 27px; font-size: 15px; color: var(--ink); }
+.lp-ticks li::before {
+  content: ''; position: absolute; inset-inline-start: 0; top: 7px;
+  width: 15px; height: 9px; border-inline-start: 2.5px solid var(--gold);
+  border-bottom: 2.5px solid var(--gold); transform: rotate(-45deg);
+}
+
+/* ── Steps ────────────────────────────────────────────── */
+.lp-steps-sec { background: var(--surface); }
+.lp-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
+.lp-step { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 30px 26px; }
+.lp-step-n {
+  display: inline-block; margin-bottom: 14px;
+  font-size: 13px; font-weight: 800; color: var(--gold);
+  font-variant-numeric: tabular-nums; letter-spacing: .05em;
+}
+.lp-step h4 { margin: 0 0 7px; font-size: 18px; font-weight: 700; color: var(--navy); }
+.lp-step p  { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+/* ── Flow (how-it-works) ──────────────────────────────── */
+.lp-flow { max-width: 780px; }
+.lp-flow-step { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 24px; }
+/* The rail is one continuous line behind three numbered nodes, so the three
+   steps read as one sequence rather than three unrelated cards. */
+.lp-flow-rail { position: relative; display: flex; justify-content: center; }
+.lp-flow-rail::before {
+  content: ''; position: absolute; top: 0; bottom: -8px; inset-inline-start: 50%;
+  width: 2px; margin-inline-start: -1px; background: var(--line);
+}
+.lp-flow-step:last-child .lp-flow-rail::before { bottom: auto; height: 30px; }
+.lp-flow-n {
+  position: relative; z-index: 1;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--wash); border: 1.5px solid var(--gold); color: var(--gold);
+  font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.lp-flow-body { padding-bottom: 46px; }
+.lp-flow-step:last-child .lp-flow-body { padding-bottom: 0; }
+.lp-flow-body h2 {
+  margin: 8px 0 10px; font-size: clamp(21px, 2.4vw, 27px); line-height: 1.25;
+  font-weight: 800; letter-spacing: -.5px; color: var(--navy);
+}
+.lp-flow-lead { margin: 0 0 12px; font-size: 16.5px; font-weight: 600; color: var(--ink); }
+.lp-flow-body p { margin: 0; color: var(--muted); font-size: 16px; }
+.lp-flow-shot { max-width: 900px; margin-top: 56px; }
+
+/* ── Price strip (home) ───────────────────────────────── */
+.lp-price-strip-sec { padding: 0 0 84px; }
+.lp-price-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 22px; flex-wrap: wrap;
+  background: var(--wash); border: 1px solid rgba(138,109,31,.22);
+  border-radius: 18px; padding: 26px 30px;
+}
+.lp-price-strip p { margin: 0; font-size: 16.5px; font-weight: 600; color: var(--navy); }
+.lp-price-strip .lp-btn { flex-shrink: 0; }
+
+/* ── Mobile band ──────────────────────────────────────── */
+.lp-mobile {
+  position: relative;
+  background:
+    radial-gradient(80% 120% at 88% 10%, rgba(212,175,55,.16) 0%, rgba(212,175,55,0) 44%),
+    radial-gradient(70% 90% at 0% 100%, rgba(30,52,72,.6) 0%, rgba(30,52,72,0) 60%),
+    linear-gradient(135deg, var(--navy) 0%, var(--navy-lt) 100%);
+  color: #fff; padding: 92px 0; overflow: hidden;
+}
+/* The delivered navy mesh, dropped in faintly for texture so the band is not a
+   flat fill behind the phone. */
+.lp-mobile::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: url('/landing/hero-bg.webp') center center / cover no-repeat;
+  opacity: .35; pointer-events: none;
+}
+.lp-mobile-inner {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .74fr);
+  gap: 48px; align-items: center;
+}
+.lp-mobile-copy h2 {
+  margin: 0 0 14px; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.2;
+  font-weight: 800; letter-spacing: -.8px; color: #fff;
+}
+.lp-mobile-copy p { margin: 0; color: rgba(255,255,255,.72); font-size: 16.5px; max-width: 32em; }
+
+/* Feature ticks as glassy rows with a gold check chip — readable on navy and
+   with enough presence to hold the column beside a tall phone. */
+.lp-phone-list { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.lp-phone-list li {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 18px; max-width: 30em;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  font-size: 15.5px; color: rgba(255,255,255,.9);
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.lp-phone-list li:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(212,175,55,.4);
+  transform: translateX(3px);
+}
+.lp-phone-check {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-br), var(--gold));
+  color: var(--navy);
+  box-shadow: 0 3px 10px rgba(212,175,55,.35);
+}
+[dir='rtl'] .lp-phone-list li:hover { transform: translateX(-3px); }
+
+.lp-mobile-actions { margin-top: 30px; }
+
+/* The phone sits in a soft gold bloom and casts its own alpha-shaped shadow. */
+.lp-mobile-shot { position: relative; max-width: 300px; margin-inline: auto; }
+.lp-mobile-shot::before {
+  content: ''; position: absolute; inset: -6% -16%; z-index: 0;
+  background: radial-gradient(closest-side, rgba(212,175,55,.30) 0%, rgba(212,175,55,0) 72%);
+  pointer-events: none;
+}
+.lp-mobile-shot .shot-img {
+  position: relative; z-index: 1;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 30px 52px rgba(0, 0, 0, .6));
+}
+.lp-mobile-shot .shot-ph {
+  position: relative; z-index: 1;
+  border-color: rgba(255,255,255,.28);
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 12px, rgba(255,255,255,.02) 12px 24px);
+}
+.lp-mobile-shot .shot-ph-id   { color: #fff; }
+.lp-mobile-shot .shot-ph-note { color: rgba(255,255,255,.6); }
+
+/* ── Pricing ──────────────────────────────────────────── */
+.lp-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; align-items: start; }
+.lp-plan {
+  background: #fff; border: 1px solid var(--line); border-radius: 18px;
+  padding: 30px 26px; display: flex; flex-direction: column; gap: 16px;
+}
+.lp-plan h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--navy); }
+/* The paid plan is the recommendation, so it carries the brand colour and a
+   little lift; the other two stay quiet rather than competing. */
+.lp-plan-feature {
+  border-color: var(--gold); box-shadow: 0 18px 44px rgba(138,109,31,.14);
+  position: relative;
+}
+.lp-plan-badge {
+  position: absolute; top: -12px; inset-inline-start: 26px;
+  background: var(--gold); color: #fff;
+  font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 20px;
+}
+.lp-price { display: flex; align-items: baseline; gap: 6px; }
+.lp-price-cur { font-size: 16px; font-weight: 700; color: var(--muted); }
+.lp-price-amt { font-size: 40px; font-weight: 800; color: var(--navy); letter-spacing: -1.4px; font-variant-numeric: tabular-nums; }
+.lp-price-per { font-size: 14px; color: var(--muted); }
+.lp-plan-sub  { margin: -8px 0 0; font-size: 14px; color: var(--muted); }
+.lp-plan .lp-btn { margin-top: auto; }
+.lp-vat-note { text-align: center; margin: 26px 0 0; font-size: 13px; color: var(--muted); }
+
+/* ── FAQ ──────────────────────────────────────────────── */
+.lp-faq-sec { background: var(--surface); }
+.lp-faq-wrap { max-width: 820px; }
+.lp-faqs { display: flex; flex-direction: column; gap: 10px; }
+.lp-faq { background: #fff; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; }
+.lp-faq.is-open { border-color: var(--gold); }
+.lp-faq-h { margin: 0; font-size: inherit; font-weight: inherit; }
+.lp-faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 22px; background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 16px; font-weight: 600; color: var(--navy); text-align: start;
+}
+.lp-faq-q i {
+  flex-shrink: 0; width: 11px; height: 11px;
+  border-inline-end: 2.5px solid var(--gold); border-bottom: 2.5px solid var(--gold);
+  transform: rotate(45deg); transition: transform .18s ease; margin-top: -4px;
+}
+.lp-faq.is-open .lp-faq-q i { transform: rotate(225deg); margin-top: 3px; }
+/* Collapsed by height, not by unmounting: the answer stays in the HTML for
+   anything reading the page without clicking it. */
+.lp-faq-a {
+  padding: 0 22px; color: var(--muted); font-size: 15.5px;
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height .22s ease, opacity .18s ease, padding .22s ease;
+}
+.lp-faq.is-open .lp-faq-a { max-height: 400px; opacity: 1; padding-bottom: 20px; }
+
+/* ── Closing CTA ──────────────────────────────────────── */
+.lp-cta {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-lt) 100%);
+  color: #fff; padding: 78px 0; text-align: center;
+}
+/* Anchored right because the artwork's own composition leaves its left third
+   empty — that emptiness is where the headline sits. */
+.lp-cta::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('/landing/brand-mark.webp') right center / cover no-repeat;
+  opacity: .38; pointer-events: none;
+}
+.lp-cta-inner { position: relative; z-index: 1; }
+.lp-cta h2 { margin: 0 0 12px; font-size: clamp(27px, 3.4vw, 40px); font-weight: 800; letter-spacing: -.9px; }
+.lp-cta p  { margin: 0 0 28px; color: rgba(255,255,255,.72); font-size: 16.5px; }
+
+/* ── Footer ───────────────────────────────────────────── */
+.lp-footer { background: #081320; color: rgba(255,255,255,.66); padding: 56px 0 0; }
+.lp-footer-inner { display: flex; gap: 48px; flex-wrap: wrap; justify-content: space-between; }
+.lp-footer-brand img { height: 32px; width: auto; display: block; margin-bottom: 14px; }
+.lp-footer-brand p { margin: 0; font-size: 14px; max-width: 30em; }
+.lp-footer-cols { display: flex; gap: 56px; flex-wrap: wrap; }
+.lp-footer-cols h5 {
+  margin: 0 0 12px; font-size: 11.5px; font-weight: 800;
+  letter-spacing: .1em; text-transform: uppercase; color: #fff;
+}
+.lp-footer-cols a { display: block; margin-bottom: 9px; color: rgba(255,255,255,.66); text-decoration: none; font-size: 14px; }
+.lp-footer-cols a:hover { color: #fff; }
+.lp-footer-base {
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: 44px; padding-top: 22px; padding-bottom: 26px;
+  border-top: 1px solid rgba(255,255,255,.1); font-size: 13px;
+}
+.lp-byline { color: rgba(255,255,255,.66); text-decoration: none; }
+.lp-byline:hover { color: #fff; text-decoration: underline; }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 900px) {
+  .lp-hero-inner, .lp-feature, .lp-mobile-inner { grid-template-columns: 1fr; gap: 36px; }
+  /* Picture below its copy on every row, including the flipped ones — an
+     image arriving before the sentence that explains it reads as noise. */
+  .lp-feature-flip .lp-feature-copy { order: 0; }
+  .lp-nav-links { display: none; }
+  /* The links are hidden, not removed, so the `+ .lp-nav-cta` rule that stops
+     a double auto-margin at desktop still matches here — and without this the
+     buttons would bunch up against the logo instead of sitting right. */
+  .lp-nav-cta { margin-inline-start: auto; }
+  .lp-burger { display: flex; }
+  .lp-nav-signin { display: none; }   /* it is in the menu instead */
+  .lp-hero { padding: 48px 0 64px; }
+  /* Stacked: the stage centres under the copy; the phone stays beside the
+     browser and the chips sit over the artwork rather than out in the margin. */
+  .lp-hero-stage { max-width: 600px; margin: 8px auto 0; }
+  .lp-hero-phone { width: 24%; margin-bottom: -2%; }
+  .lp-stat-1 { top: 3%; inset-inline-end: 0; }
+  .lp-stat-2 { top: 34%; inset-inline-end: -2%; }
+  .lp-section { padding: 62px 0; }
+  .lp-pagehead { padding: 46px 0 50px; }
+  .lp-sec-head { margin-bottom: 40px; }
+  .lp-feature { margin-bottom: 58px; }
+  .lp-price-strip-sec { padding-bottom: 62px; }
+}
+@media (max-width: 560px) {
+  .lp-wrap { padding: 0 18px; }
+  .lp-nav-inner { height: 60px; gap: 12px; }
+  .lp-brand img { height: 28px; }
+  .lp-hero-actions .lp-btn { flex: 1 1 100%; }
+  /* Chips get bulky on a small phone-width stage; keep only the primary one. */
+  .lp-stat { padding: 9px 12px; }
+  .lp-stat-2 { display: none; }
+  .lp-footer-cols { gap: 32px; }
+  .lp-flow-step { grid-template-columns: 46px minmax(0, 1fr); gap: 16px; }
+  .lp-flow-n { width: 38px; height: 38px; font-size: 13px; }
+  .lp-price-strip { padding: 22px; }
+  .lp-price-strip .lp-btn { width: 100%; }
+}
+
+/* ── Arabic ───────────────────────────────────────────── */
+/* The layout itself is direction-agnostic (logical properties throughout), so
+   only two things need saying: the headline's tight Latin tracking is wrong
+   for Arabic letterforms, and the tick marks are drawn shapes that have to be
+   mirrored by hand because a border-triangle has no logical equivalent. */
+[dir='rtl'] .lp-h1,
+[dir='rtl'] .lp-pagehead h1,
+[dir='rtl'] .lp-sec-head h2,
+[dir='rtl'] .lp-cta h2,
+[dir='rtl'] .lp-mobile-copy h2,
+[dir='rtl'] .lp-feature-copy h2,
+[dir='rtl'] .lp-flow-body h2 { letter-spacing: 0; line-height: 1.3; }
+[dir='rtl'] .lp-ticks li::before { transform: rotate(-45deg) scaleX(-1); }
+[dir='rtl'] .lp-faq-q i { transform: rotate(135deg); }
+[dir='rtl'] .lp-faq.is-open .lp-faq-q i { transform: rotate(-45deg); }
+[dir='rtl'] .lp-price-amt,
+[dir='rtl'] .lp-h1 { letter-spacing: 0; }
+
+/* ---- UAE invoicing SEO page ---- */
+.lp-uae-intro { max-width: 760px; margin: 0 0 44px; }
+.lp-uae-intro h2 {
+  font-size: clamp(24px, 3.4vw, 34px);
+  line-height: 1.18; letter-spacing: -.01em; color: var(--navy); margin: 0 0 14px;
+}
+.lp-uae-intro p { font-size: 17px; line-height: 1.7; color: var(--muted); margin: 0; }
+
+.lp-uae-grid {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.lp-uae-card {
+  padding: 26px 24px; border: 1px solid var(--line); border-radius: 16px;
+  background: #fff; box-shadow: 0 1px 2px rgba(13, 27, 42, .04);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+.lp-uae-card:hover {
+  box-shadow: 0 14px 34px rgba(13, 27, 42, .1);
+  transform: translateY(-2px); border-color: #E9DFBF;
+}
+.lp-uae-card h3 {
+  font-size: 18px; line-height: 1.3; color: var(--navy); margin: 14px 0 8px; letter-spacing: -.01em;
+}
+.lp-uae-card p { font-size: 15px; line-height: 1.65; color: var(--muted); margin: 0; }
+
+.lp-uae-faq-title {
+  font-size: clamp(22px, 3vw, 30px); color: var(--navy);
+  letter-spacing: -.01em; margin: 0 0 22px;
+}
+
+@media (max-width: 900px) {
+  .lp-uae-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .lp-uae-grid { grid-template-columns: 1fr; }
+}

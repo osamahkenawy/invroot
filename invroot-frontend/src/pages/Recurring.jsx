@@ -7,6 +7,7 @@ import { AuthContext } from '../context/AuthContext.jsx';
 import { Plus, Pause, Play, Xmark, RefreshDouble } from 'iconoir-react';
 import { fmtCurrency } from '../utils/currency.js';
 import { fmtDate } from '../utils/date.js';
+import { CURRENCIES } from '../data/currencies.js';
 
 export default function Recurring() {
   const { t } = useTranslation();
@@ -225,7 +226,7 @@ function RecurringFormModal({ onClose, onSaved }) {
             <div className="form-group">
               <label>{t('common.currency')}</label>
               <select value={form.currency} onChange={setF('currency')}>
-                {['SAR','USD','EUR','AED','GBP','KWD'].map(c => <option key={c}>{c}</option>)}
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>

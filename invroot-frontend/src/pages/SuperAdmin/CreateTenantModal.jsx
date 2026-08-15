@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import saApi from '../../lib/saApi.js';
+import { CURRENCIES } from '../../data/currencies.js';
 
-const CURRENCIES = ['AED','SAR','USD','EUR','GBP','EGP','KWD','QAR','BHD','OMR','JOD'];
 const PLANS      = ['starter','professional','enterprise'];
 
 /**

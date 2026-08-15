@@ -71,6 +71,23 @@
 .bnk-form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .bnk-form-group input, .bnk-form-group select, .bnk-form-group textarea { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-primary); background: var(--bg-main); outline: none; transition: border .2s; }
 .bnk-form-group input:focus, .bnk-form-group select:focus { border-color: var(--primary); }
+
+/* Divides "how we track this account" from "what the customer is told about
+   it" — the second half leaves the building, so it earns its own heading. */
+.bnk-form-sep {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.bnk-form-sep span {
+  font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.bnk-form-sep small { font-size: 12px; color: var(--text-secondary); }
+.bnk-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.bnk-check input { width: 15px; height: 15px; margin: 0; flex-shrink: 0; }
+.bnk-check span { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.bnk-field-hint { font-size: 12px; color: var(--text-secondary); }
 .bnk-modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
 .bnk-btn-cancel { padding: 9px 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); cursor: pointer; }
 .bnk-btn-save { padding: 9px 20px; border: none; border-radius: 8px; background: var(--secondary); color: #fff; cursor: pointer; font-weight: 600; }
