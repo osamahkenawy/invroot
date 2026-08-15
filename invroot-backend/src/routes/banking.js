@@ -23,16 +23,41 @@ router.get('/accounts', async (req, res) => {
   } catch (err) { failure(res, err, { context: 'banking' }); }
 });
 
+/**
+ * Exactly one account can be the one printed on invoices.
+ *
+ * Two accounts both claiming it would put two sets of bank details in front of
+ * a customer with nothing to say which to pay into — the kind of ambiguity
+ * that ends in a payment to a closed account. Clearing the others first makes
+ * the flag a choice rather than a checkbox anyone can tick twice.
+ */
+async function clearOtherInvoiceAccounts(tenantId, exceptId = null) {
+  await execute(
+    `UPDATE bank_accounts SET show_on_invoices = 0
+      WHERE tenant_id = ? AND show_on_invoices = 1 ${exceptId ? 'AND id <> ?' : ''}`,
+    exceptId ? [tenantId, exceptId] : [tenantId]
+  );
+}
+
 /* POST /api/banking/accounts */
 router.post('/accounts', async (req, res) => {
   try {
-    const { name, account_number, bank_name, currency, balance, account_type, notes } = req.body;
+    const { name, account_number, bank_name, currency, balance, account_type, notes,
+            account_holder, iban, swift, branch, routing_code, show_on_invoices } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Account name required' });
+
+    const onInvoices = show_on_invoices ? 1 : 0;
+    if (onInvoices) await clearOtherInvoiceAccounts(req.tenantId);
+
     const result = await execute(
-      `INSERT INTO bank_accounts (tenant_id, name, account_number, bank_name, currency, balance, account_type, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bank_accounts (tenant_id, name, account_number, bank_name, currency, balance,
+                                  account_type, notes, account_holder, iban, swift, branch,
+                                  routing_code, show_on_invoices)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.tenantId, name, account_number || null, bank_name || null,
-       currency || 'SAR', balance || 0, account_type || 'checking', notes || null]
+       currency || 'SAR', balance || 0, account_type || 'checking', notes || null,
+       account_holder || null, iban || null, swift || null, branch || null,
+       routing_code || null, onInvoices]
     );
     res.status(201).json({ success: true, id: result.insertId });
   } catch (err) { failure(res, err, { context: 'banking' }); }
@@ -41,11 +66,20 @@ router.post('/accounts', async (req, res) => {
 /* PUT /api/banking/accounts/:id */
 router.put('/accounts/:id', async (req, res) => {
   try {
-    const { name, account_number, bank_name, currency, balance, account_type, is_active, notes } = req.body;
+    const { name, account_number, bank_name, currency, balance, account_type, is_active, notes,
+            account_holder, iban, swift, branch, routing_code, show_on_invoices } = req.body;
+
+    const onInvoices = show_on_invoices ? 1 : 0;
+    if (onInvoices) await clearOtherInvoiceAccounts(req.tenantId, req.params.id);
+
     await execute(
       `UPDATE bank_accounts SET name=?, account_number=?, bank_name=?, currency=?,
-       balance=?, account_type=?, is_active=?, notes=? WHERE id=? AND tenant_id=?`,
-      [name, account_number, bank_name, currency, balance, account_type, is_active ?? 1, notes, req.params.id, req.tenantId]
+       balance=?, account_type=?, is_active=?, notes=?, account_holder=?, iban=?,
+       swift=?, branch=?, routing_code=?, show_on_invoices=?
+       WHERE id=? AND tenant_id=?`,
+      [name, account_number, bank_name, currency, balance, account_type, is_active ?? 1, notes,
+       account_holder || null, iban || null, swift || null, branch || null,
+       routing_code || null, onInvoices, req.params.id, req.tenantId]
     );
     res.json({ success: true });
   } catch (err) { failure(res, err, { context: 'banking' }); }

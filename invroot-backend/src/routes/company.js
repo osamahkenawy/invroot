@@ -8,6 +8,7 @@ import { putObject, deleteObject, isDisplaySafeImage, resolveAssetUrl, withAsset
 import { logAudit } from '../lib/audit-logger.js';
 import { failure } from '../lib/api-error.js';
 import { usageFor, limitsFor } from '../middleware/plan-limit.js';
+import { isSupportedCurrency } from '../lib/currency.js';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -47,8 +48,11 @@ router.put('/', requireOwner, async (req, res) => {
     if (provided.includes('company_name') && !String(req.body.company_name || '').trim()) {
       return res.status(400).json({ success: false, message: 'Company name cannot be empty.' });
     }
-    const CURRENCIES = ['SAR','USD','EUR','GBP','AED','KWD','QAR','EGP','OMR','BHD'];
-    if (provided.includes('currency') && !CURRENCIES.includes(req.body.currency)) {
+    /* Against the shared list, not a local one. The inline array this replaced
+       held ten Gulf-and-major codes while Settings offered a hundred and forty,
+       so a tenant in India, Japan, Kenya or Canada picked their own currency
+       and was told it was unsupported. */
+    if (provided.includes('currency') && !isSupportedCurrency(req.body.currency)) {
       return res.status(400).json({ success: false, message: 'Unsupported currency.' });
     }
     if (provided.includes('lang') && !['en','ar'].includes(req.body.lang)) {

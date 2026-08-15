@@ -155,6 +155,29 @@ export async function generateInvoicePdf(invoice, tenant, lang = 'en', docType =
         .totals td { padding: 4px 8px; }
         .totals .grand-total { font-weight: bold; font-size: 16px; color: ${accent}; }
         .notes { margin-top: 20px; font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 10px; }
+        /* Bank details as a field grid, not a sentence. Each value sits under
+           its own label so the customer can copy an IBAN without picking it
+           out of a paragraph, and auto-fit keeps a tenant who fills in three
+           fields from getting six columns of whitespace. */
+        .pay { margin-top: 20px; border-top: 1px solid #eee; padding-top: 12px; }
+        .pay-title {
+          font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+          color: #aaa; margin-bottom: 8px;
+        }
+        .pay-grid {
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px 24px;
+        }
+        .pay-k { font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: #999; }
+        /* Account numbers and IBANs are read a character at a time and are the
+           one thing on the page nobody may misread, so they get a mono face and
+           are allowed to break rather than overflow their column. */
+        .pay-v {
+          font-size: 11.5px; color: #333; font-weight: 600; margin-top: 1px;
+          font-family: 'DejaVu Sans Mono', Menlo, Consolas, monospace;
+          word-break: break-all; direction: ltr; unicode-bidi: embed;
+        }
+        .pay-v.is-text { font-family: inherit; word-break: normal; }
         .stamp-area { display: flex; justify-content: flex-end; align-items: flex-end; margin-top: 36px; gap: 40px; padding-top: 20px; border-top: 1px solid #eee; }
         .stamp-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .stamp-box .stamp-label { font-size: 10px; text-transform: uppercase; color: #aaa; letter-spacing: .08em; }
@@ -232,7 +255,7 @@ export async function generateInvoicePdf(invoice, tenant, lang = 'en', docType =
         </div>
 
         ${invoice.notes ? `<div class="notes"><strong>${isRTL ? 'ملاحظات' : 'Notes'}:</strong> ${invoice.notes}</div>` : ''}
-        ${invoice.footer_text ? `<div class="notes" style="margin-top:8px">${invoice.footer_text}</div>` : ''}
+        ${paymentBlockHtml(tenant.bank, isRTL, invoice.currency)}
 
         ${(tenant.stamp_url || tenant.signature_url) ? `
         <div class="stamp-area">
@@ -250,13 +273,76 @@ export async function generateInvoicePdf(invoice, tenant, lang = 'en', docType =
           </div>` : ''}
         </div>` : ''}
 
-        <div class="footer">${tenant.footer_text || (isRTL ? 'شكراً لتعاملكم معنا' : 'Thank you for your business')}</div>
+        <!-- One footer, at the foot of the page. invoice.footer_text used to
+             ALSO render as a notes block above the signature area, and since it
+             is copied from the tenant default at creation, both slots printed
+             the same sentence on every invoice. The per-invoice text still
+             wins over the tenant default; it just wins in one place. -->
+        <div class="footer">${invoice.footer_text || tenant.footer_text || (isRTL ? 'شكراً لتعاملكم معنا' : 'Thank you for your business')}</div>
       </div>
     </body>
     </html>
   `;
 
   return htmlToPdf(html);
+}
+
+const esc = s => String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * "Where to send the money", as labelled fields rather than a paragraph.
+ *
+ * Tenants used to type this into the invoice Notes box, which meant it printed
+ * as one wrapped run of text — "AccountNumber: … Bank Name: … BIC Code: …
+ * IBAN: …" — and a customer had to pick a 23-character IBAN out of the middle
+ * of a sentence. Now each value is its own field with its own label.
+ *
+ * Only fields the tenant filled in are rendered. The set is deliberately
+ * country-neutral: IBAN and SWIFT cover Europe, the Gulf and most of Asia,
+ * while `routing_code` carries whatever the local equivalent is (US routing
+ * number, UK sort code, Indian IFSC, Australian BSB) under one generic label,
+ * because hardcoding six country-specific rows would leave five of them blank
+ * on every invoice.
+ */
+function paymentBlockHtml(bank, isRTL, invoiceCurrency) {
+  if (!bank) return '';
+
+  const fields = [
+    ['account_holder', isRTL ? 'اسم الحساب' : 'Account Name', true],
+    ['bank_name',      isRTL ? 'البنك' : 'Bank', true],
+    ['branch',         isRTL ? 'الفرع' : 'Branch', true],
+    ['account_number', isRTL ? 'رقم الحساب' : 'Account Number', false],
+    ['iban',           isRTL ? 'الآيبان' : 'IBAN', false],
+    ['swift',          isRTL ? 'سويفت / BIC' : 'SWIFT / BIC', false],
+    ['routing_code',   isRTL ? 'رمز التوجيه' : 'Routing / Sort Code', false],
+  ];
+
+  const cells = fields
+    .filter(([key]) => bank[key])
+    .map(([key, label, isText]) => `
+      <div>
+        <div class="pay-k">${label}</div>
+        <div class="pay-v${isText ? ' is-text' : ''}">${esc(bank[key])}</div>
+      </div>`);
+
+  /* Only worth saying when it differs — an invoice in one currency paid into
+     an account held in another is a conversion the customer needs to expect. */
+  if (bank.bank_currency && invoiceCurrency && bank.bank_currency !== invoiceCurrency) {
+    cells.push(`
+      <div>
+        <div class="pay-k">${isRTL ? 'عملة الحساب' : 'Account Currency'}</div>
+        <div class="pay-v is-text">${esc(bank.bank_currency)}</div>
+      </div>`);
+  }
+
+  if (!cells.length) return '';
+
+  return `
+    <div class="pay">
+      <div class="pay-title">${isRTL ? 'تفاصيل الدفع' : 'Payment Details'}</div>
+      <div class="pay-grid">${cells.join('')}</div>
+    </div>`;
 }
 
 function formatAmount(amount, currency = 'USD') {

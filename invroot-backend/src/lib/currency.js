@@ -79,3 +79,33 @@ export function countryFromRequest(req) {
   if (!code || code.length !== 2 || code === 'XX' || code === 'T1') return null;
   return code;
 }
+
+/**
+ * Every currency Invroot accepts — the validation side of the same list the UI
+ * renders from (invroot-frontend/src/data/currencies.js).
+ *
+ * This module used to hold only the country→currency map, and each caller
+ * validated against its own inline array. routes/company.js allowed ten codes
+ * while Settings offered a hundred and forty, so most tenants outside the Gulf
+ * were told "Unsupported currency." for their own money.
+ *
+ * Two packages, so this is a copy rather than an import;
+ * scripts/currency-parity-check.mjs fails if it stops matching the frontend.
+ */
+export const SUPPORTED_CURRENCIES = [
+  'AED','AFN','ALL','AMD','ANG','AOA','ARS','AUD','AZN','BAM','BBD','BDT','BGN',
+  'BHD','BIF','BND','BOB','BRL','BSD','BTN','BWP','BYN','BZD','CAD','CHF','CLP',
+  'CNY','COP','CRC','CUP','CVE','CZK','DJF','DKK','DOP','DZD','EGP','ERN','ETB',
+  'EUR','FJD','GBP','GEL','GHS','GMD','GNF','GTQ','GYD','HNL','HTG','HUF','IDR',
+  'ILS','INR','IQD','IRR','ISK','JMD','JOD','JPY','KES','KGS','KHR','KMF','KWD',
+  'KYD','KZT','LAK','LBP','LKR','LRD','LYD','MAD','MDL','MGA','MKD','MMK','MNT',
+  'MRU','MUR','MVR','MWK','MXN','MYR','MZN','NAD','NGN','NIO','NOK','NPR','NZD',
+  'OMR','PAB','PEN','PGK','PHP','PKR','PLN','PYG','QAR','RON','RSD','RUB','RWF',
+  'SAR','SBD','SCR','SDG','SEK','SGD','SLL','SOS','SRD','SSP','STN','SYP','SZL',
+  'THB','TJS','TMT','TND','TOP','TRY','TTD','TZS','UAH','UGX','USD','UYU','UZS',
+  'VES','VND','VUV','WST','XAF','XCD','XOF','YER','ZAR','ZMW',
+];
+
+export function isSupportedCurrency(code) {
+  return SUPPORTED_CURRENCIES.includes(String(code || '').toUpperCase());
+}

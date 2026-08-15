@@ -10,7 +10,7 @@
  * the figure shown next to the code is the figure taken from the card.
  */
 
-import { query } from './database.js';
+import { query, execute } from './database.js';
 import { config } from '../config.js';
 import { stripe, ownedMetadata, isOwnedByApp } from './stripe-client.js';
 
@@ -187,4 +187,68 @@ export async function createStripeCoupon({ code, percentOff, amountOff, currency
 
   const promo = await s.promotionCodes.create(promoPayload);
   return { coupon, promo };
+}
+
+/**
+ * Record that a coupon was actually redeemed, once a checkout has completed.
+ *
+ * This function was CALLED by the webhook and never existed. Every
+ * `checkout.session.completed` therefore threw ReferenceError, and since
+ * Stripe reads a 500 as "retry later", the endpoint was collecting failures on
+ * its most important event.
+ *
+ * The subscription itself was never at risk — plans are granted by
+ * `customer.subscription.created/updated`, a separate event — so paying
+ * customers got what they paid for. What was lost is the redemption record,
+ * which is what validateCoupon() reads to enforce one-use-per-tenant and what
+ * the admin page reads to show who used a code. A launch discount capped at N
+ * uses would never have burned a single one.
+ *
+ * Recorded here rather than at checkout creation on purpose: a session that is
+ * created and abandoned must not consume a code. Only a completed session
+ * means money moved.
+ *
+ * @param {object} session Stripe checkout.session
+ * @returns {Promise<{tenantId: (string|null), note: string}>}
+ */
+export async function recordRedemption(session) {
+  const tenantId = session?.metadata?.tenant_id || session?.client_reference_id || null;
+  const code = normaliseCode(session?.metadata?.coupon);
+
+  // Most checkouts carry no code at all. That is not a failure.
+  if (!code) return { tenantId, note: 'no coupon on session' };
+  if (!tenantId) return { tenantId: null, note: `coupon ${code} but no tenant_id on session` };
+
+  const [coupon] = await query('SELECT id FROM invroot_coupons WHERE code = ?', [code]);
+  if (!coupon) return { tenantId, note: `coupon ${code} not in mirror` };
+
+  /* Belt-and-braces against a Stripe retry that slips past event dedup. There
+     is no unique index on the session column, so this is the guard. */
+  const [seen] = await query(
+    'SELECT id FROM invroot_coupon_redemptions WHERE stripe_session_id = ? LIMIT 1',
+    [session.id]
+  );
+  if (seen) return { tenantId, note: `redemption already recorded for ${code}` };
+
+  /* Stripe reports discounts in minor units. Storing 1000 where 10.00 belongs
+     would overstate every total on the admin page a hundredfold. */
+  const discount = Number(session?.total_details?.amount_discount || 0) / 100;
+  const currency = String(session.currency || '').toUpperCase() || null;
+  const subscriptionId = typeof session.subscription === 'string'
+    ? session.subscription
+    : session.subscription?.id || null;
+
+  await execute(
+    `INSERT INTO invroot_coupon_redemptions
+       (coupon_id, code, tenant_id, stripe_subscription_id, stripe_session_id, plan, discount_amount, currency)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [coupon.id, code, tenantId, subscriptionId, session.id,
+     session?.metadata?.plan || null, discount, currency]
+  );
+  await execute(
+    'UPDATE invroot_coupons SET times_redeemed = times_redeemed + 1 WHERE id = ?',
+    [coupon.id]
+  );
+
+  return { tenantId, note: `redeemed ${code} (-${discount} ${currency || ''})`.trim() };
 }

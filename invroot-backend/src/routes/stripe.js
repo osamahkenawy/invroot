@@ -5,7 +5,7 @@ import { tenantMiddleware } from '../middleware/tenant.js';
 import { requireOwner } from '../middleware/role-gate.js';
 import { config } from '../config.js';
 import { failure, AppError } from '../lib/api-error.js';
-import { validateCoupon, messageFor, COUPON_RESULT, normaliseCode } from '../lib/coupons.js';
+import { validateCoupon, messageFor, COUPON_RESULT, normaliseCode, recordRedemption } from '../lib/coupons.js';
 import {
   stripe, isStripeConfigured, isWebhookConfigured,
   ownedMetadata, isOwnedByApp, planForPriceId, billablePlans,

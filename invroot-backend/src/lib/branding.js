@@ -52,5 +52,16 @@ export async function getTenantWithBranding(tenantId) {
     [tenantId]
   ).catch(() => [null]);
 
-  return withAssetUrls({ ...tenant, ...(sig || {}) });
+  /* Also optional, and for the same reason: a tenant who has not nominated an
+     account to publish still gets an invoice, just without a payment block. */
+  const [bank] = await query(
+    `SELECT name AS bank_account_label, account_holder, bank_name, branch,
+            account_number, iban, swift, routing_code, currency AS bank_currency
+       FROM bank_accounts
+      WHERE tenant_id = ? AND show_on_invoices = 1 AND is_active = 1
+      LIMIT 1`,
+    [tenantId]
+  ).catch(() => [null]);
+
+  return withAssetUrls({ ...tenant, ...(sig || {}), bank: bank || null });
 }
